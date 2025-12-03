@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -39,15 +38,10 @@ namespace HGM.Hotbird64.LicenseManager
 
     public static class TapMirror
     {
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private const uint METHOD_BUFFERED = 0;
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private const uint FILE_ANY_ACCESS = 0;
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private const uint FILE_DEVICE_UNKNOWN = 0x00000022;
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private const int FILE_ATTRIBUTE_SYSTEM = 0x4;
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private const int FILE_FLAG_OVERLAPPED = 0x40000000;
 
         public enum TapIoctl
@@ -83,59 +77,55 @@ namespace HGM.Hotbird64.LicenseManager
             public string ClassName;
             public string DeviceSuffix;
             public SafeFileHandle Handle;
-            public override string ToString() => $"{Name} ({ClassName})";
+            public override string ToString()
+            {
+                return $"{Name} ({ClassName})";
+            }
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 4, CharSet = CharSet.None)]
         public struct TapConfigTun
         {
-            private int address;
-            private int network;
-            private int mask;
-
             public int Address
             {
-                get => IPAddress.NetworkToHostOrder(address);
-                set => address = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
 
             public int Network
             {
-                get => IPAddress.NetworkToHostOrder(network);
-                set => network = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
 
             public int Mask
             {
-                get => IPAddress.NetworkToHostOrder(mask);
-                set => mask = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 4, CharSet = CharSet.None)]
         public struct TapConfigDhcp
         {
-            private int address;
-            private int mask;
-            private int dhcpServer;
             public int LeaseDuration;
 
             public int Address
             {
-                get => IPAddress.NetworkToHostOrder(address);
-                set => address = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
 
             public int Mask
             {
-                get => IPAddress.NetworkToHostOrder(mask);
-                set => mask = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
 
             public int DhcpServer
             {
-                get => IPAddress.NetworkToHostOrder(dhcpServer);
-                set => dhcpServer = IPAddress.HostToNetworkOrder(value);
+                get => IPAddress.NetworkToHostOrder(field);
+                set => field = IPAddress.HostToNetworkOrder(value);
             }
         }
 
@@ -150,14 +140,12 @@ namespace HGM.Hotbird64.LicenseManager
 
         private static FileStream tap;
         private static TapDevice device;
-        private static bool isVirtualCableConnected;
-
-        private static readonly TapDeviceVariants tapDeviceVariants = new TapDeviceVariants
-        {
+        private static readonly TapDeviceVariants tapDeviceVariants =
+        [
             new TapDeviceVariant { Class = "tap0801", Suffix = "tap" },
             new TapDeviceVariant { Class = "tap0901", Suffix = "tap" },
             new TapDeviceVariant { Class = "TEAMVIEWERVPN", Suffix = "dgt" },
-        };
+        ];
 
         public static bool IsStarted => tap != null;
 
@@ -166,7 +154,10 @@ namespace HGM.Hotbird64.LicenseManager
             ParseSubnet(subnet, out int address, out int network, out int mask);
             device = OpenTapHandle(tapName);
             Version version = DriverVersion;
-            if (version.Major == 8 && version.Minor < 2) throw new NotSupportedException("TAP driver 8.x or 9.x greater than 8.2 required");
+            if (version.Major == 8 && version.Minor < 2)
+            {
+                throw new NotSupportedException("TAP driver 8.x or 9.x greater than 8.2 required");
+            }
 
             SetSubnet(address, network, mask);
             EnableDhcp(address, mask);
@@ -205,7 +196,10 @@ namespace HGM.Hotbird64.LicenseManager
 
                     tap.Write(buffer, 0, bytesRead);
 
-                    if (Mtu > buffer.Length) buffer = new byte[Mtu];
+                    if (Mtu > buffer.Length)
+                    {
+                        buffer = new byte[Mtu];
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -224,7 +218,7 @@ namespace HGM.Hotbird64.LicenseManager
             get
             {
                 int tapMtu;
-                DevCtl(TapIoctl.GetMtu, &tapMtu, sizeof(int));
+                _ = DevCtl(TapIoctl.GetMtu, &tapMtu, sizeof(int));
                 return tapMtu;
             }
         }
@@ -233,42 +227,49 @@ namespace HGM.Hotbird64.LicenseManager
         {
             get
             {
-                TapDriverVersion tapDriverVersion = new TapDriverVersion();
+                TapDriverVersion tapDriverVersion = new();
                 int len = DevCtl(TapIoctl.GetVersion, &tapDriverVersion, sizeof(TapDriverVersion));
 
-                switch (len)
+                return len switch
                 {
-                    case sizeof(int) * 2:
-                        return new Version(tapDriverVersion.Major, tapDriverVersion.Minor);
-                    case sizeof(int) * 3:
-                        return new Version(tapDriverVersion.Major, tapDriverVersion.Minor, tapDriverVersion.Build);
-                    case sizeof(int) * 4:
-                        return new Version(tapDriverVersion.Major, tapDriverVersion.Minor, tapDriverVersion.Build, tapDriverVersion.Revision);
-                    default:
-                        throw new InvalidOperationException("Cannot determine TAP driver version");
-                }
+                    sizeof(int) * 2 => new Version(tapDriverVersion.Major, tapDriverVersion.Minor),
+                    sizeof(int) * 3 => new Version(tapDriverVersion.Major, tapDriverVersion.Minor, tapDriverVersion.Build),
+                    sizeof(int) * 4 => new Version(tapDriverVersion.Major, tapDriverVersion.Minor, tapDriverVersion.Build, tapDriverVersion.Revision),
+                    _ => throw new InvalidOperationException("Cannot determine TAP driver version"),
+                };
             }
         }
 
-        public static string IpAddressString(int address) => new IPAddress(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(address))).ToString();
+        public static string IpAddressString(int address)
+        {
+            return new IPAddress(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(address))).ToString();
+        }
 
         public static int IpAddressInt(string ipAddressString)
         {
             IPAddress ipAddress = IPAddress.Parse(ipAddressString);
-            if (ipAddress.AddressFamily != AddressFamily.InterNetwork) throw new FormatException($"{ipAddressString} is not a valid IPv4 address");
-            return IPAddress.NetworkToHostOrder(BitConverter.ToInt32(ipAddress.GetAddressBytes(), 0));
+            return ipAddress.AddressFamily != AddressFamily.InterNetwork
+                ? throw new FormatException($"{ipAddressString} is not a valid IPv4 address")
+                : IPAddress.NetworkToHostOrder(BitConverter.ToInt32(ipAddress.GetAddressBytes(), 0));
         }
 
         private static void ParseSubnet(string subnet, out int address, out int network, out int mask)
         {
             int cidr;
             string[] split = subnet.Split('/');
-            if (split.Length > 2) throw new FormatException("Subnet must be <IPv4 address>[/<CIDR mask>]");
+            if (split.Length > 2)
+            {
+                throw new FormatException("Subnet must be <IPv4 address>[/<CIDR mask>]");
+            }
 
             if (split.Length == 2)
             {
                 cidr = int.Parse(split[1], NumberStyles.None, CultureInfo.InvariantCulture);
-                if (cidr > 30 || cidr < 8) throw new ArgumentOutOfRangeException(nameof(cidr), "CIDR must be between 8 and 30");
+                if (cidr is > 30 or < 8)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(cidr), "CIDR must be between 8 and 30");
+                }
+
                 address = IpAddressInt(split[0]);
             }
             else
@@ -311,13 +312,13 @@ namespace HGM.Hotbird64.LicenseManager
 
         private static unsafe void SetSubnet(int address, int network, int mask)
         {
-            TapConfigTun tapConfigTun = new TapConfigTun { Address = address, Network = network, Mask = mask };
-            DevCtl(TapIoctl.ConfigureIPv4Tunnel, &tapConfigTun, sizeof(TapConfigTun));
+            TapConfigTun tapConfigTun = new() { Address = address, Network = network, Mask = mask };
+            _ = DevCtl(TapIoctl.ConfigureIPv4Tunnel, &tapConfigTun, sizeof(TapConfigTun));
         }
 
         private static unsafe void EnableDhcp(int address, int mask)
         {
-            TapConfigDhcp tapConfigDhcp = new TapConfigDhcp
+            TapConfigDhcp tapConfigDhcp = new()
             {
                 Address = address,
                 Mask = mask,
@@ -325,17 +326,17 @@ namespace HGM.Hotbird64.LicenseManager
                 LeaseDuration = 24 * 60 * 60
             };
 
-            DevCtl(TapIoctl.ConfigDhcpMasquerade, &tapConfigDhcp, sizeof(TapConfigDhcp));
+            _ = DevCtl(TapIoctl.ConfigDhcpMasquerade, &tapConfigDhcp, sizeof(TapConfigDhcp));
         }
 
         public static unsafe bool IsVirtualCableConnected
         {
-            get => isVirtualCableConnected && IsStarted;
+            get => field && IsStarted;
             set
             {
                 int status = value ? 1 : 0;
-                DevCtl(TapIoctl.SetMediaStatus, &status, sizeof(int));
-                isVirtualCableConnected = value;
+                _ = DevCtl(TapIoctl.SetMediaStatus, &status, sizeof(int));
+                field = value;
             }
         }
 
@@ -343,42 +344,47 @@ namespace HGM.Hotbird64.LicenseManager
         {
             const string adapterKey = @"SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}";
 
-            using (RegistryKey regAdapters = Registry.LocalMachine.OpenSubKey(adapterKey, writable: false))
+            using RegistryKey regAdapters = Registry.LocalMachine.OpenSubKey(adapterKey, writable: false);
+            string[] keyNames = regAdapters?.GetSubKeyNames();
+            if (keyNames == null)
             {
-                string[] keyNames = regAdapters?.GetSubKeyNames();
-                if (keyNames == null) yield break;
+                yield break;
+            }
 
-                foreach (string keyName in keyNames)
+            foreach (string keyName in keyNames)
+            {
+                RegistryKey regAdapter;
+
+                try
                 {
-                    RegistryKey regAdapter;
+                    regAdapter = regAdapters.OpenSubKey(keyName, writable: false);
+                }
+                catch
+                {
+                    continue;
+                }
 
-                    try
-                    {
-                        regAdapter = regAdapters.OpenSubKey(keyName, writable: false);
-                    }
-                    catch
+                try
+                {
+                    string id = regAdapter?.GetValue("ComponentId")?.ToString();
+                    if (!tapDeviceVariants.Select(v => v.Class).Contains(id) || id == null)
                     {
                         continue;
                     }
 
-                    try
-                    {
-                        string id = regAdapter?.GetValue("ComponentId")?.ToString();
-                        if (!tapDeviceVariants.Select(v => v.Class).Contains(id) || id == null) continue;
-                        string guid = regAdapter.GetValue("NetCfgInstanceId").ToString();
+                    string guid = regAdapter.GetValue("NetCfgInstanceId").ToString();
 
-                        yield return new TapDevice
-                        {
-                            DeviceSuffix = tapDeviceVariants[id],
-                            ClassName = id,
-                            Guid = guid,
-                            Name = GetDisplayName(guid)
-                        };
-                    }
-                    finally
+                    yield return new TapDevice
                     {
-                        regAdapter?.Dispose();
-                    }
+                        DeviceSuffix = tapDeviceVariants[id],
+                        ClassName = id,
+                        Guid = guid,
+                        Name = GetDisplayName(guid)
+                    };
+                }
+                finally
+                {
+                    regAdapter?.Dispose();
                 }
             }
         }
@@ -394,7 +400,10 @@ namespace HGM.Hotbird64.LicenseManager
                     FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED, IntPtr.Zero
                 );
 
-                if (tapHandle.IsInvalid) continue;
+                if (tapHandle.IsInvalid)
+                {
+                    continue;
+                }
 
                 tapDevice.Handle = tapHandle;
                 return tapDevice;
@@ -416,26 +425,17 @@ namespace HGM.Hotbird64.LicenseManager
 
         private static unsafe int DevCtl(TapIoctl code, void* data, int len)
         {
-            if
-            (
-                device?.Handle == null ||
+            return device?.Handle == null ||
                 device.Handle.IsClosed ||
                 device.Handle.IsInvalid
-            )
-            {
-                throw new InvalidOperationException("Not connected to a TAP device");
-            }
-
-            if (!DeviceIoControl
+                ? throw new InvalidOperationException("Not connected to a TAP device")
+                : !DeviceIoControl
             (
                 device.Handle, (FILE_DEVICE_UNKNOWN << 16) | (FILE_ANY_ACCESS << 14) | ((uint)code << 2) | METHOD_BUFFERED,
                 data, len, data, len, out len, IntPtr.Zero
-            ))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
-
-            return len;
+            )
+                ? throw new Win32Exception(Marshal.GetLastWin32Error())
+                : len;
         }
 
         [DllImport("Kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]

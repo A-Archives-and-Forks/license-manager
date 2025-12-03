@@ -1,7 +1,6 @@
 ﻿using HGM.Hotbird64.Vlmcs;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,7 +10,7 @@ namespace HGM.Hotbird64.LicenseManager
 {
     public class EPid : IEquatable<EPid>, IEquatable<string>
     {
-        public static readonly DateTime IllegalDate = new DateTime(1601, 1, 1, 23, 59, 59);
+        public static readonly DateTime IllegalDate = new(1601, 1, 1, 23, 59, 59);
         public readonly string Id;
         public string[] Split { get; private set; }
         public string DateString => Split.Length < 8 ? null : Split[7];
@@ -22,7 +21,10 @@ namespace HGM.Hotbird64.LicenseManager
         public string GroupIdString => Split.Length < 2 ? null : Split[1];
         public string OsIdString => Split[0];
 
-        public override string ToString() => Id;
+        public override string ToString()
+        {
+            return Id;
+        }
 
         public bool Equals(string other)
         {
@@ -31,25 +33,12 @@ namespace HGM.Hotbird64.LicenseManager
 
         public bool Equals(EPid other)
         {
-            return (object)other != null && Equals(other.Id);
+            return other is not null && Equals(other.Id);
         }
 
-        [SuppressMessage("ReSharper", "CanBeReplacedWithTryCastAndCheckForNull")]
-        [SuppressMessage("ReSharper", "BaseObjectEqualsIsObjectEquals")]
         public override bool Equals(object other)
         {
-            if (other is EPid)
-            {
-                return Id == ((EPid)other).Id;
-            }
-            else if (other is string)
-            {
-                return Id == (string)other;
-            }
-            else
-            {
-                return base.Equals(other);
-            }
+            return other is EPid ? Id == ((EPid)other).Id : other is string ? Id == (string)other : base.Equals(other);
         }
 
         public override int GetHashCode()
@@ -57,12 +46,35 @@ namespace HGM.Hotbird64.LicenseManager
             return Id.GetHashCode();
         }
 
-        public static bool operator ==(EPid left, EPid right) => left?.Id == right?.Id;
-        public static bool operator !=(EPid left, EPid right) => !(left == right);
-        public static bool operator ==(EPid left, string right) => left?.Id == right;
-        public static bool operator !=(EPid left, string right) => !(left == right);
-        public static bool operator ==(string left, EPid right) => left == right?.Id;
-        public static bool operator !=(string left, EPid right) => !(left == right);
+        public static bool operator ==(EPid left, EPid right)
+        {
+            return left?.Id == right?.Id;
+        }
+
+        public static bool operator !=(EPid left, EPid right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator ==(EPid left, string right)
+        {
+            return left?.Id == right;
+        }
+
+        public static bool operator !=(EPid left, string right)
+        {
+            return !(left == right);
+        }
+
+        public static bool operator ==(string left, EPid right)
+        {
+            return left == right?.Id;
+        }
+
+        public static bool operator !=(string left, EPid right)
+        {
+            return !(left == right);
+        }
 
         public EPid(object pid)
         {
@@ -75,8 +87,6 @@ namespace HGM.Hotbird64.LicenseManager
             Id = buffer.Text;
             CheckId();
         }
-
-        [SuppressMessage("ReSharper", "ReturnValueOfPureMethodIsNotUsed")]
         public bool IsValidEpidFormat
         {
             get
@@ -88,12 +98,12 @@ namespace HGM.Hotbird64.LicenseManager
                         return false;
                     }
 
-                    OsId.ToString();
-                    GroupId.ToString();
-                    KeyId.ToString();
-                    KeyType.ToString();
-                    Date.ToString(CultureInfo.CurrentCulture);
-                    OsName.ToString();
+                    _ = OsId.ToString();
+                    _ = GroupId.ToString();
+                    _ = KeyId.ToString();
+                    _ = KeyType.ToString();
+                    _ = Date.ToString(CultureInfo.CurrentCulture);
+                    _ = OsName.ToString();
                     return true;
                 }
                 catch
@@ -155,72 +165,27 @@ namespace HGM.Hotbird64.LicenseManager
             Split = Id.Split(new[] { '-' }, 8);
         }
 
-        public uint OsId
-        {
-            get
-            {
-                if (!Regex.IsMatch(OsIdString, "^[0-9]{5}$"))
-                {
-                    throw new FormatException($"The OS id \"{OsIdString}\" in the ePID is not in the format #####");
-                }
+        public uint OsId => !Regex.IsMatch(OsIdString, "^[0-9]{5}$")
+                    ? throw new FormatException($"The OS id \"{OsIdString}\" in the ePID is not in the format #####")
+                    : uint.Parse(OsIdString, CultureInfo.InvariantCulture);
 
-                return uint.Parse(OsIdString, CultureInfo.InvariantCulture);
-            }
-        }
+        public uint GroupId => Split.Length < 2
+                    ? throw new FormatException("The ePid has no group id")
+                    : !Regex.IsMatch(GroupIdString, "^[0-9]{5}$")
+                    ? throw new FormatException($"The group id \"{GroupIdString}\" in the ePID is not in the format #####")
+                    : uint.Parse(GroupIdString, CultureInfo.InvariantCulture);
 
-        public uint GroupId
-        {
-            get
-            {
-                if (Split.Length < 2)
-                {
-                    throw new FormatException("The ePid has no group id");
-                }
+        public uint KeyId => Split.Length < 4
+                    ? throw new FormatException("The ePid has no key serial number")
+                    : !Regex.IsMatch(KeyIdString, "^[0-9]{3}\x2D[0-9]{6}$")
+                    ? throw new FormatException($"The key serial number \"{KeyIdString}\" in the ePID is not in the format ###-######")
+                    : uint.Parse(Split[2] + Split[3], CultureInfo.InvariantCulture);
 
-                if (!Regex.IsMatch(GroupIdString, "^[0-9]{5}$"))
-                {
-                    throw new FormatException($"The group id \"{GroupIdString}\" in the ePID is not in the format #####");
-                }
-
-                return uint.Parse(GroupIdString, CultureInfo.InvariantCulture);
-            }
-        }
-
-        public uint KeyId
-        {
-            get
-            {
-                if (Split.Length < 4)
-                {
-                    throw new FormatException("The ePid has no key serial number");
-                }
-
-                if (!Regex.IsMatch(KeyIdString, "^[0-9]{3}\x2D[0-9]{6}$"))
-                {
-                    throw new FormatException($"The key serial number \"{KeyIdString}\" in the ePID is not in the format ###-######");
-                }
-
-                return uint.Parse(Split[2] + Split[3], CultureInfo.InvariantCulture);
-            }
-        }
-
-        public byte KeyType
-        {
-            get
-            {
-                if (Split.Length < 5)
-                {
-                    throw new FormatException("The ePID has no key type");
-                }
-
-                if (!Regex.IsMatch(Split[4], "^[0-9]{2}$"))
-                {
-                    throw new FormatException($"key type \"{Split[4]}\" in ePID is not in the format ##");
-                }
-
-                return byte.Parse(Split[4], CultureInfo.InvariantCulture);
-            }
-        }
+        public byte KeyType => Split.Length < 5
+                    ? throw new FormatException("The ePID has no key type")
+                    : !Regex.IsMatch(Split[4], "^[0-9]{2}$")
+                    ? throw new FormatException($"key type \"{Split[4]}\" in ePID is not in the format ##")
+                    : byte.Parse(Split[4], CultureInfo.InvariantCulture);
 
         public CultureInfo Culture
         {
@@ -248,12 +213,9 @@ namespace HGM.Hotbird64.LicenseManager
                     throw new CultureNotFoundException("The LCID in the ePID is unsupported", tempInt, (Exception)null);
                 }
 
-                if (!Regex.IsMatch(culture.Name.ToUpper(), @"^[A-Z\x2D]{2,}\x2D[A-Z,0-9]{2,}$"))
-                {
-                    throw new CultureNotFoundException("The LCID in the ePID is unsupported", tempInt, (Exception)null);
-                }
-
-                return culture;
+                return !Regex.IsMatch(culture.Name.ToUpper(), @"^[A-Z\x2D]{2,}\x2D[A-Z,0-9]{2,}$")
+                    ? throw new CultureNotFoundException("The LCID in the ePID is unsupported", tempInt, (Exception)null)
+                    : culture;
             }
         }
 
@@ -282,12 +244,9 @@ namespace HGM.Hotbird64.LicenseManager
                 date = date.AddYears(Convert.ToInt32(Split[7].Substring(3, 4)) - 1601);
                 date = date.AddDays(dayOfYear - 1);
 
-                if (year != date.Year || dayOfYear != date.DayOfYear)
-                {
-                    throw new ArgumentOutOfRangeException("The date in the ePID is not valid", (Exception)null);
-                }
-
-                return date;
+                return year != date.Year || dayOfYear != date.DayOfYear
+                    ? throw new ArgumentOutOfRangeException("The date in the ePID is not valid", (Exception)null)
+                    : date;
             }
         }
 
@@ -315,7 +274,7 @@ namespace HGM.Hotbird64.LicenseManager
         {
             get
             {
-                IReadOnlyList<WinBuild> winBuilds = KmsLists.KmsData.WinBuilds.OrderBy(b => b.BuildNumber).ToArray() as IReadOnlyList<WinBuild>;
+                IReadOnlyList<WinBuild> winBuilds = KmsLists.KmsData.WinBuilds.OrderBy(b => b.BuildNumber).ToArray();
 
                 if (OsBuild < (uint)winBuilds[0].BuildNumber)
                 {

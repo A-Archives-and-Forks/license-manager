@@ -5,7 +5,6 @@ using LicenseManager.Annotations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -32,12 +31,11 @@ namespace HGM.Hotbird64.LicenseManager
         public bool IsExternal => ExternalFileName != null;
         public string ExternalFileName;
         public string ZippedFileName => BaseFileName + ".xrm-ms.gz";
-        public Uri Uri => new Uri("pack://application:,,,/LicenseManager;component/Data/PKeyConfig/" + ZippedFileName);
+        public Uri Uri => new("pack://application:,,,/LicenseManager;component/Data/PKeyConfig/" + ZippedFileName);
         public bool IsOnFileSystem => tempFileName != null || IsUnzippedExternal;
         public bool IsOldKeyFormat;
         public bool IsUnzippedExternal => IsExternal && !ExternalFileName.ToUpperInvariant().EndsWith(".GZ");
 
-        [SuppressMessage("ReSharper", "PossibleNullReferenceException")]
         public string TempFileName
         {
             get
@@ -54,8 +52,8 @@ namespace HGM.Hotbird64.LicenseManager
                 string tempName = Path.GetTempFileName();
 
                 using (Stream compressedStream = Application.GetResourceStream(Uri).Stream)
-                using (GZipStream stream = new GZipStream(compressedStream, CompressionMode.Decompress, false))
-                using (FileStream file = new FileStream(tempName, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (GZipStream stream = new(compressedStream, CompressionMode.Decompress, false))
+                using (FileStream file = new(tempName, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     stream.CopyTo(file);
                 }
@@ -67,116 +65,118 @@ namespace HGM.Hotbird64.LicenseManager
             internal set => tempFileName = value;
         }
 
-        public override string ToString() => DisplayName;
+        public override string ToString()
+        {
+            return DisplayName;
+        }
     }
 
-    [SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
     public partial class ProductBrowser : IHaveNotifyOfPropertyChange
     {
         public static ProductKeyConfiguration PKeyConfig { get; set; }
         public static ISet<ProductKeyConfigurationConfigurationsConfiguration> KeyConfigs => PKeyConfig.Items.OfType<ProductKeyConfigurationConfigurations>().Single().Configuration;
         public static ISet<ProductKeyConfigurationPublicKeysPublicKey> PublicKeys => PKeyConfig.Items.OfType<ProductKeyConfigurationPublicKeys>().Single().PublicKey;
         public static ISet<ProductKeyConfigurationKeyRangesKeyRange> KeyRanges => PKeyConfig.Items.OfType<ProductKeyConfigurationKeyRanges>().Single().KeyRange;
-        private readonly Random random = new Random(unchecked((int)DateTime.Now.Ticks));
+        private readonly Random random = new(unchecked((int)DateTime.Now.Ticks));
         private IEnumerable<ProductKeyConfigurationKeyRangesKeyRange> keyRanges;
         private ProductKeyConfigurationConfigurationsConfiguration keyConfig;
         private bool? isUsageAccepted = false;
         private SkuItem skuItem;
         public static RoutedUICommand InstallGeneratedKey;
         public static RoutedUICommand InstallGvlk;
-        public static InputGestureCollection CtrlI = new InputGestureCollection();
+        public static InputGestureCollection CtrlI = [];
         private readonly bool isManualEpid;
         private readonly bool isInputChanging;
-        private readonly object lookupLockObject = new object();
+        private readonly object lookupLockObject = new();
 
-        public static IList<PKeyConfigFile> PKeyConfigFiles = new List<PKeyConfigFile>
-        {
+        public static IList<PKeyConfigFile> PKeyConfigFiles =
+        [
             /*
              * Windows Vista and Windows Server 2008
              */
-            new PKeyConfigFile {BaseFileName="pkconfig_vista", DisplayName="Windows Vista/Windows Server 2008", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig_vista", DisplayName="Windows Vista/Windows Server 2008", IsOldKeyFormat=true },
 
             /*
              * Windows 7 (all editions) and Windows Server 2008 R2
              */
-            new PKeyConfigFile {BaseFileName="19041-pkeyconfig-downlevel", DisplayName="Windows 7 SP1 OEM/Retail", IsOldKeyFormat=true},
-            new PKeyConfigFile {BaseFileName="pkconfig_winPosReady7", DisplayName="Windows 7 POS Ready", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig_winThinPC", DisplayName="Windows 7 Thin PC", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig_win7", DisplayName="Windows 7/Windows Server 2008 R2", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig_winemb7", DisplayName="Windows 7 Embedded Standard", IsOldKeyFormat=true },
+            new() {BaseFileName="19041-pkeyconfig-downlevel", DisplayName="Windows 7 SP1 OEM/Retail", IsOldKeyFormat=true},
+            new() {BaseFileName="pkconfig_winPosReady7", DisplayName="Windows 7 POS Ready", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig_winThinPC", DisplayName="Windows 7 Thin PC", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig_win7", DisplayName="Windows 7/Windows Server 2008 R2", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig_winemb7", DisplayName="Windows 7 Embedded Standard", IsOldKeyFormat=true },
             
             /*
              * Windows 8 (all editions) and Windows Server 2012
              */ 
-            new PKeyConfigFile {BaseFileName="pkconfig_win8", DisplayName="Windows 8/Windows 8 Embedded/Windows Server 2012" },
-            new PKeyConfigFile {BaseFileName="pkconfig_win8-csvlk", DisplayName="Windows 8/Windows 8 Embedded/Windows Server 2012 KMS Host" }, //KMS Host
+            new() {BaseFileName="pkconfig_win8", DisplayName="Windows 8/Windows 8 Embedded/Windows Server 2012" },
+            new() {BaseFileName="pkconfig_win8-csvlk", DisplayName="Windows 8/Windows 8 Embedded/Windows Server 2012 KMS Host" }, //KMS Host
 
             /*
              * Windows 8.1 (all editions) and Windows Server 2012 R2 (Windows 8.1 based)
              */
-            new PKeyConfigFile {BaseFileName="pkconfig_win8.1Update", DisplayName="Windows 8.1/Windows Server 2012 R2" },
-            new PKeyConfigFile {BaseFileName="pkconfig_win8.1-csvlk", DisplayName="Windows 8.1/Windows Server 2012 R2 KMS Host" },
+            new() {BaseFileName="pkconfig_win8.1Update", DisplayName="Windows 8.1/Windows Server 2012 R2" },
+            new() {BaseFileName="pkconfig_win8.1-csvlk", DisplayName="Windows 8.1/Windows Server 2012 R2 KMS Host" },
 
             /*
              * Windows 10, Windows 11 (22H2, 23H2), Windows Server 2012 R2 Next (Windows 10 based), Windows Server 2016, 
              * Windows Server 2019, Windows Server 2022, Windows Server 2025
              * 
              */
-            new PKeyConfigFile {BaseFileName="pkconfig_win10", DisplayName="Windows 10/Windows 11/Windows 10 1507/Windows Embedded Industry Next Beta/Windows Server 2012 R2 Next" },
-            new PKeyConfigFile {BaseFileName="pkconfig_win10_anniversary", DisplayName="Windows 10 Preview/Windows 10 1607/Windows Server 2012 R2 Next/Windows Server 2016" },
-            new PKeyConfigFile {BaseFileName="16299-pkeyconfig", DisplayName="Windows 10 LTSC, Government (1709, 1803)/Windows 11 LTSC, Government/Windows Server (1709, 1803)/Windows Server 2016" },
-            new PKeyConfigFile {BaseFileName="18362-pkeyconfig", DisplayName="Windows 10 (LTSC, SAC)/Windows 11 (LTSC, SAC)/Windows Server SAC (1809 to 20H2)/Windows Server 2019" },
-            new PKeyConfigFile {BaseFileName="19041-pkeyconfig", DisplayName="Windows 10 2004/Windows Server 2019" },
-            new PKeyConfigFile {BaseFileName="20348-pkeyconfig", DisplayName="Windows Server 2019 Azure Stack HCI/Windows Server 2022/Windows Server 2021 SAC" },
-            new PKeyConfigFile {BaseFileName="20348-pkeyconfig-downlevel", DisplayName="Windows 7/Windows Server 2008 R2 compatible upgrade to Windows 10 Insider Program/Windows Server 2022" },
-            new PKeyConfigFile {BaseFileName="22621-pkeyconfig", DisplayName="Windows 11 (22H2, 23H2)/Windows IoT Enterprise LTSC/Windows Server 2022 vNext" },
-            new PKeyConfigFile {BaseFileName="26100-pkeyconfig", DisplayName="Windows 11 24H2/Windows Server 2025" },
-            new PKeyConfigFile {BaseFileName="26100-pkeyconfig-downlevel", DisplayName="Windows 7/Windows Server 2008 R2 (OEM) compatible upgrade to Windows 11 24H2/Windows Server 2025 (OEM)" },
+            new() {BaseFileName="pkconfig_win10", DisplayName="Windows 10/Windows 11/Windows 10 1507/Windows Embedded Industry Next Beta/Windows Server 2012 R2 Next" },
+            new() {BaseFileName="pkconfig_win10_anniversary", DisplayName="Windows 10 Preview/Windows 10 1607/Windows Server 2012 R2 Next/Windows Server 2016" },
+            new() {BaseFileName="16299-pkeyconfig", DisplayName="Windows 10 LTSC, Government (1709, 1803)/Windows 11 LTSC, Government/Windows Server (1709, 1803)/Windows Server 2016" },
+            new() {BaseFileName="18362-pkeyconfig", DisplayName="Windows 10 (LTSC, SAC)/Windows 11 (LTSC, SAC)/Windows Server SAC (1809 to 20H2)/Windows Server 2019" },
+            new() {BaseFileName="19041-pkeyconfig", DisplayName="Windows 10 2004/Windows Server 2019" },
+            new() {BaseFileName="20348-pkeyconfig", DisplayName="Windows Server 2019 Azure Stack HCI/Windows Server 2022/Windows Server 2021 SAC" },
+            new() {BaseFileName="20348-pkeyconfig-downlevel", DisplayName="Windows 7/Windows Server 2008 R2 compatible upgrade to Windows 10 Insider Program/Windows Server 2022" },
+            new() {BaseFileName="22621-pkeyconfig", DisplayName="Windows 11 (22H2, 23H2)/Windows IoT Enterprise LTSC/Windows Server 2022 vNext" },
+            new() {BaseFileName="26100-pkeyconfig", DisplayName="Windows 11 24H2/Windows Server 2025" },
+            new() {BaseFileName="26100-pkeyconfig-downlevel", DisplayName="Windows 7/Windows Server 2008 R2 (OEM) compatible upgrade to Windows 11 24H2/Windows Server 2025 (OEM)" },
 
-            new PKeyConfigFile {BaseFileName="pkconfig_win10-csvlk", DisplayName="Windows 10/Windows 11/Windows 10 1507/Windows Embedded Industry Next Beta/Windows Server 2012 R2 Next KMS Host" },
-            new PKeyConfigFile {BaseFileName="pkconfig_win10_anniversary-csvlk", DisplayName="Windows 10 Preview/Windows 10 1607/Windows Server 2012 R2 Next/Windows Server 2016 KMS Host" },
-            new PKeyConfigFile {BaseFileName="16299-pkeyconfig-csvlk", DisplayName="Windows 10 (1709, 1803)/Windows Server (1709, 1803)/Windows Server 2016 KMS Host" },
-            new PKeyConfigFile {BaseFileName="19041-pkeyconfig-csvlk", DisplayName="Windows 10 2004/Windows Server 2019 KMS Host" },
-            new PKeyConfigFile {BaseFileName="22621-pkeyconfig-csvlk", DisplayName="Windows 11 (22H2, 23H2)/Windows IoT Enterprise LTSC/Windows Server 2022 vNext KMS Host" },
-            new PKeyConfigFile {BaseFileName="26100-pkeyconfig-csvlk", DisplayName="Windows 11 24H2/Windows Server 2025 KMS Host" },
+            new() {BaseFileName="pkconfig_win10-csvlk", DisplayName="Windows 10/Windows 11/Windows 10 1507/Windows Embedded Industry Next Beta/Windows Server 2012 R2 Next KMS Host" },
+            new() {BaseFileName="pkconfig_win10_anniversary-csvlk", DisplayName="Windows 10 Preview/Windows 10 1607/Windows Server 2012 R2 Next/Windows Server 2016 KMS Host" },
+            new() {BaseFileName="16299-pkeyconfig-csvlk", DisplayName="Windows 10 (1709, 1803)/Windows Server (1709, 1803)/Windows Server 2016 KMS Host" },
+            new() {BaseFileName="19041-pkeyconfig-csvlk", DisplayName="Windows 10 2004/Windows Server 2019 KMS Host" },
+            new() {BaseFileName="22621-pkeyconfig-csvlk", DisplayName="Windows 11 (22H2, 23H2)/Windows IoT Enterprise LTSC/Windows Server 2022 vNext KMS Host" },
+            new() {BaseFileName="26100-pkeyconfig-csvlk", DisplayName="Windows 11 24H2/Windows Server 2025 KMS Host" },
 
             /*
              * Office 2010 and later
              */
-            new PKeyConfigFile {BaseFileName="pkconfig_office14", DisplayName="Office 2010", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig_office15pre", DisplayName="Office 2013 Preview", IsOldKeyFormat=true},
-            new PKeyConfigFile {BaseFileName="pkconfig_office15", DisplayName="Office 2013", IsOldKeyFormat=true},
-            new PKeyConfigFile {BaseFileName="pkeyconfig-office", DisplayName="Office 2016 and up" },
-            new PKeyConfigFile {BaseFileName="pkconfig_Office15KMSHost", DisplayName="Office 2013 KMS Host" },
-            new PKeyConfigFile {BaseFileName="pkeyconfig-office-kmshost", DisplayName="Office 2016 and up KMS Host" },
+            new() {BaseFileName="pkconfig_office14", DisplayName="Office 2010", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig_office15pre", DisplayName="Office 2013 Preview", IsOldKeyFormat=true},
+            new() {BaseFileName="pkconfig_office15", DisplayName="Office 2013", IsOldKeyFormat=true},
+            new() {BaseFileName="pkeyconfig-office", DisplayName="Office 2016 and up" },
+            new() {BaseFileName="pkconfig_Office15KMSHost", DisplayName="Office 2013 KMS Host" },
+            new() {BaseFileName="pkeyconfig-office-kmshost", DisplayName="Office 2016 and up KMS Host" },
 
             /*
              * Visual Studio (all versions)
              */ 
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2010", DisplayName="Visual Studio 2010", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2012", DisplayName="Visual Studio 2012", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2013", DisplayName="Visual Studio 2013", IsOldKeyFormat=true },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2015", DisplayName="Visual Studio 2015" },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2017", DisplayName="Visual Studio 2017" },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2019", DisplayName="Visual Studio 2019" },
-            new PKeyConfigFile {BaseFileName="pkconfig-vs2022", DisplayName="Visual Studio 2022" },
-        };
+            new() {BaseFileName="pkconfig-vs2010", DisplayName="Visual Studio 2010", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig-vs2012", DisplayName="Visual Studio 2012", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig-vs2013", DisplayName="Visual Studio 2013", IsOldKeyFormat=true },
+            new() {BaseFileName="pkconfig-vs2015", DisplayName="Visual Studio 2015" },
+            new() {BaseFileName="pkconfig-vs2017", DisplayName="Visual Studio 2017" },
+            new() {BaseFileName="pkconfig-vs2019", DisplayName="Visual Studio 2019" },
+            new() {BaseFileName="pkconfig-vs2022", DisplayName="Visual Studio 2022" },
+            new() {BaseFileName="pkconfig-vs2026", DisplayName="Visual Studio 2026" }
+        ];
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private string buildNumber = Environment.OSVersion.Version.Build.ToString(CultureInfo.InvariantCulture) + ".0000";
         public string BuildNumber
         {
-            get => buildNumber;
+            get;
 
-            set => this.SetProperty(ref buildNumber, value, postAction: () =>
+            set => this.SetProperty(ref field, value, postAction: () =>
             {
                 NotifyOfPropertyChange(nameof(IsValidBuildNumber));
                 NotifyOfPropertyChange(nameof(BuildNumberInt));
                 NotifyOfPropertyChange(nameof(FullEPid));
                 NotifyOfPropertyChange(nameof(PlatformId));
             });
-        }
+        } = Environment.OSVersion.Version.Build.ToString(CultureInfo.InvariantCulture) + ".0000";
 
         public string FullEPid
         {
@@ -232,7 +232,7 @@ namespace HGM.Hotbird64.LicenseManager
         static ProductBrowser()
         {
             LoadPkeyConfigDatabase();
-            CtrlI.Add(new KeyGesture(Key.I, ModifierKeys.Control));
+            _ = CtrlI.Add(new KeyGesture(Key.I, ModifierKeys.Control));
             InstallGeneratedKey = new RoutedUICommand("Check or Install Key", nameof(InstallGeneratedKey), typeof(ScalableWindow), CtrlI);
             InstallGvlk = new RoutedUICommand("Check or Install Key", nameof(InstallGvlk), typeof(ScalableWindow), CtrlI);
         }
@@ -276,34 +276,34 @@ namespace HGM.Hotbird64.LicenseManager
             GroupBoxProductTree.Visibility = Visibility.Visible;
             EpidInput.Visibility = Visibility.Collapsed;
 
-            TreeViewItem rootItem = new TreeViewItem { Header = "All SKUs by PkConfig file" };
+            TreeViewItem rootItem = new() { Header = "All SKUs by PkConfig file" };
 
             {
                 IEnumerable<IGrouping<IPKeyConfigFile, ProductKeyConfigurationConfigurationsConfiguration>> treeGroupings = KeyConfigs.GroupBy(c => c.Source);
 
                 foreach (IGrouping<IPKeyConfigFile, ProductKeyConfigurationConfigurationsConfiguration> treeGrouping in treeGroupings.OrderBy(t => t.Key.DisplayName))
                 {
-                    TreeViewItem pKeyConfigItem = new TreeViewItem { Header = treeGrouping.Key.DisplayName, };
+                    TreeViewItem pKeyConfigItem = new() { Header = treeGrouping.Key.DisplayName, };
                     IEnumerable<IGrouping<string, ProductKeyConfigurationConfigurationsConfiguration>> licenseGroupings = treeGrouping.GroupBy(t => t.ProductKeyType);
 
                     foreach (IGrouping<string, ProductKeyConfigurationConfigurationsConfiguration> licenseGrouping in licenseGroupings)
                     {
-                        TreeViewItem licenseItem = new TreeViewItem { Header = licenseGrouping.Key, };
+                        TreeViewItem licenseItem = new() { Header = licenseGrouping.Key, };
 
                         foreach (ProductKeyConfigurationConfigurationsConfiguration product in licenseGrouping)
                         {
-                            TreeViewItem productItem = new TreeViewItem { Header = product, };
-                            licenseItem.Items.Add(productItem);
+                            TreeViewItem productItem = new() { Header = product, };
+                            _ = licenseItem.Items.Add(productItem);
                         }
 
-                        pKeyConfigItem.Items.Add(licenseItem);
+                        _ = pKeyConfigItem.Items.Add(licenseItem);
                     }
 
-                    rootItem.Items.Add(pKeyConfigItem);
+                    _ = rootItem.Items.Add(pKeyConfigItem);
                 }
             }
 
-            ProductTree.Items.Add(rootItem);
+            _ = ProductTree.Items.Add(rootItem);
 
             rootItem = new TreeViewItem { Header = "All SKUs by Group ID" };
 
@@ -312,34 +312,36 @@ namespace HGM.Hotbird64.LicenseManager
 
                 foreach (IGrouping<int, ProductKeyConfigurationConfigurationsConfiguration> treeGrouping in treeGroupings)
                 {
-                    TreeViewItem pKeyConfigItem = new TreeViewItem { Header = $"{treeGrouping.Key:00000}", };
+                    TreeViewItem pKeyConfigItem = new() { Header = $"{treeGrouping.Key:00000}", };
 
                     foreach (ProductKeyConfigurationConfigurationsConfiguration product in treeGrouping)
                     {
-                        TreeViewItem productItem = new TreeViewItem { Header = product, };
-                        pKeyConfigItem.Items.Add(productItem);
+                        TreeViewItem productItem = new() { Header = product, };
+                        _ = pKeyConfigItem.Items.Add(productItem);
                     }
 
-                    rootItem.Items.Add(pKeyConfigItem);
+                    _ = rootItem.Items.Add(pKeyConfigItem);
                 }
             }
 
-            ProductTree.Items.Add(rootItem);
+            _ = ProductTree.Items.Add(rootItem);
 
             rootItem = new TreeViewItem { Header = "CSVLK SKUs only" };
 
             foreach (ProductKeyConfigurationConfigurationsConfiguration csvlkConfig in MainWindow.CsvlkConfigs.OrderBy(c => c.ToString()))
             {
-                rootItem.Items.Add(new TreeViewItem { Header = csvlkConfig, });
+                _ = rootItem.Items.Add(new TreeViewItem { Header = csvlkConfig, });
             }
 
-            ProductTree.Items.Add(rootItem);
+            _ = ProductTree.Items.Add(rootItem);
             ProductTree.SelectedItemChanged += ProductTree_SelectedItemChanged;
         }
 
         [NotifyPropertyChangedInvocator]
         public void NotifyOfPropertyChange([CallerMemberName] string propertyName = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
         private void OnMainWindowStatusChange(object sender, BusyEventArgs e)
         {
@@ -355,7 +357,7 @@ namespace HGM.Hotbird64.LicenseManager
 
             List<string> fileNames = Directory.EnumerateFiles(App.ExeDirectoryName, "*.xrm-ms").ToList();
             fileNames.AddRange(Directory.EnumerateFiles(App.ExeDirectoryName, "*.xrm-ms.gz"));
-            fileNames = new List<string>(fileNames.OrderByDescending(f => f));
+            fileNames = [.. fileNames.OrderByDescending(f => f)];
 
             foreach (string fileName in fileNames)
             {
@@ -405,89 +407,81 @@ namespace HGM.Hotbird64.LicenseManager
 
             foreach (ProductKeyConfigurationConfigurationsConfiguration keyConfig in keyConfigs)
             {
-                KeyConfigs.Add(keyConfig);
+                _ = KeyConfigs.Add(keyConfig);
             }
 
             foreach (ProductKeyConfigurationPublicKeysPublicKey publicKey in publicKeys)
             {
-                PublicKeys.Add(publicKey);
+                _ = PublicKeys.Add(publicKey);
             }
 
             foreach (ProductKeyConfigurationKeyRangesKeyRange keyRange in keyRanges)
             {
-                KeyRanges.Add(keyRange);
+                _ = KeyRanges.Add(keyRange);
             }
         }
 
-        [SuppressMessage("ReSharper", "PossibleNullReferenceException")]
         private static ProductKeyConfiguration ReadPkeyConfig(PKeyConfigFile pKeyConfigFile)
         {
+            using Stream stream = !pKeyConfigFile.IsExternal
+                    ? Application.GetResourceStream(pKeyConfigFile.Uri).Stream
+                    : new FileStream(pKeyConfigFile.ExternalFileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            ProductKeyConfiguration pKeyConfig;
+
             using
             (
-                Stream stream = !pKeyConfigFile.IsExternal
-                    ? Application.GetResourceStream(pKeyConfigFile.Uri).Stream
-                    : new FileStream(pKeyConfigFile.ExternalFileName, FileMode.Open, FileAccess.Read, FileShare.Read)
+                Stream unzipStream = (!pKeyConfigFile.IsExternal || pKeyConfigFile.ExternalFileName.ToUpperInvariant().EndsWith(".GZ"))
+                    ? new GZipStream(stream, CompressionMode.Decompress, false)
+                    : null
             )
             {
-                ProductKeyConfiguration pKeyConfig;
+                XmlDocument xmlDocument = new();
+                xmlDocument.Load(unzipStream ?? stream);
 
-                using
-                (
-                    Stream unzipStream = (!pKeyConfigFile.IsExternal || pKeyConfigFile.ExternalFileName.ToUpperInvariant().EndsWith(".GZ"))
-                        ? new GZipStream(stream, CompressionMode.Decompress, false)
-                        : null
-                )
+                try
                 {
-                    XmlDocument xmlDocument = new XmlDocument();
-                    xmlDocument.Load(unzipStream ?? stream);
+                    byte[] data = Convert.FromBase64String(xmlDocument
+                        .SelectSingleNode("/*[local-name()='licenseGroup']/*[local-name()='license']/*[local-name()='otherInfo']/*[local-name()='infoTables']/*[local-name()='infoList']/*[@name='pkeyConfigData']").InnerText);
 
-                    try
-                    {
-                        byte[] data = Convert.FromBase64String(xmlDocument
-                            .SelectSingleNode("/*[local-name()='licenseGroup']/*[local-name()='license']/*[local-name()='otherInfo']/*[local-name()='infoTables']/*[local-name()='infoList']/*[@name='pkeyConfigData']").InnerText);
-
-                        using (MemoryStream memoryStream = new MemoryStream(data))
-                        {
-                            XmlSerializer serializer = new XmlSerializer(typeof(ProductKeyConfiguration));
-                            pKeyConfig = (ProductKeyConfiguration)serializer.Deserialize(memoryStream);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Dispatcher.CurrentDispatcher.InvokeAsync(() => MessageBox.Show
-                        (
-                            $"The file \"{(pKeyConfigFile.IsExternal ? pKeyConfigFile.ExternalFileName : pKeyConfigFile.ZippedFileName)}\" " +
-                            $"could not be loaded into the pkeyconfig database\n\n{e.GetType().Name}: {e.Message}",
-                            "PKeyConfig Database Load Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error
-                        ));
-
-                        throw;
-                    }
+                    using MemoryStream memoryStream = new(data);
+                    XmlSerializer serializer = new(typeof(ProductKeyConfiguration));
+                    pKeyConfig = (ProductKeyConfiguration)serializer.Deserialize(memoryStream);
                 }
-
-                Parallel.ForEach(pKeyConfig.Items.OfType<ProductKeyConfigurationConfigurations>().Single().Configuration, config =>
+                catch (Exception e)
                 {
-                    config.Source = pKeyConfigFile;
-                });
+                    _ = Dispatcher.CurrentDispatcher.InvokeAsync(() => MessageBox.Show
+                    (
+                        $"The file \"{(pKeyConfigFile.IsExternal ? pKeyConfigFile.ExternalFileName : pKeyConfigFile.ZippedFileName)}\" " +
+                        $"could not be loaded into the pkeyconfig database\n\n{e.GetType().Name}: {e.Message}",
+                        "PKeyConfig Database Load Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error
+                    ));
 
-                Parallel.ForEach(pKeyConfig.Items.OfType<ProductKeyConfigurationKeyRanges>().Single().KeyRange, keyRange =>
-                {
-                    keyRange.FileName = pKeyConfigFile.DisplayName;
-                });
-
-                return pKeyConfig;
+                    throw;
+                }
             }
+
+            _ = Parallel.ForEach(pKeyConfig.Items.OfType<ProductKeyConfigurationConfigurations>().Single().Configuration, config =>
+            {
+                config.Source = pKeyConfigFile;
+            });
+
+            _ = Parallel.ForEach(pKeyConfig.Items.OfType<ProductKeyConfigurationKeyRanges>().Single().KeyRange, keyRange =>
+            {
+                keyRange.FileName = pKeyConfigFile.DisplayName;
+            });
+
+            return pKeyConfig;
         }
 
         private void ProductTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (!((e.NewValue as TreeViewItem)?.Header is ProductKeyConfigurationConfigurationsConfiguration keyConf))
+            if ((e.NewValue as TreeViewItem)?.Header is not ProductKeyConfigurationConfigurationsConfiguration keyConf)
             {
                 return;
             }
 
-            Task.Run(() => UpdatePkConfig(keyConf));
+            _ = Task.Run(() => UpdatePkConfig(keyConf));
         }
 
         private void UpdatePkConfig(ProductKeyConfigurationConfigurationsConfiguration keyConf)
@@ -622,7 +616,7 @@ namespace HGM.Hotbird64.LicenseManager
 
             if (keyRange == null)
             {
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                   "There are no valid Key Id ranges",
                   "Database Error",
@@ -639,7 +633,10 @@ namespace HGM.Hotbird64.LicenseManager
             GroupBoxGenerated.Visibility = Visibility.Collapsed;
         }
 
-        private void TreeViewItem_Collapse(object sender, RoutedEventArgs e) => ((ItemsControl)e.Source).ExpandAll(false);
+        private void TreeViewItem_Collapse(object sender, RoutedEventArgs e)
+        {
+            ((ItemsControl)e.Source).ExpandAll(false);
+        }
 
         private void textBox_KeyId_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -667,7 +664,7 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 uint left = uint.Parse(TextBoxKeyId1.Text);
                 uint right = uint.Parse(TextBoxKeyId2.Text);
-                uint keyId = left * 1000000 + right;
+                uint keyId = (left * 1000000) + right;
 
                 if (keyRanges != null)
                 {
@@ -738,12 +735,12 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 uint left = uint.Parse(TextBoxKeyId1.Text);
                 uint right = uint.Parse(TextBoxKeyId2.Text);
-                uint keyId = left * 1000000 + right;
+                uint keyId = (left * 1000000) + right;
 
-                ulong randomSecret = (ulong)unchecked((uint)random.Next(int.MinValue, int.MaxValue));
+                ulong randomSecret = unchecked((uint)random.Next(int.MinValue, int.MaxValue));
                 randomSecret |= (ulong)random.Next(0x200000) << 32;
 
-                BinaryProductKey binaryKey = new BinaryProductKey((uint)keyConfig.RefGroupId, keyId, randomSecret);
+                BinaryProductKey binaryKey = new((uint)keyConfig.RefGroupId, keyId, randomSecret);
                 keys[i] = (string)binaryKey;
             }
 
@@ -763,12 +760,19 @@ namespace HGM.Hotbird64.LicenseManager
         }
 
         private void InstallGenerated_Executed(object sender, ExecutedRoutedEventArgs e)
-          => new ProductBrowser(MainWindow, DataGridKeys.SelectedCells.FirstOrDefault().Item.ToString()).Show();
+        {
+            new ProductBrowser(MainWindow, DataGridKeys.SelectedCells.FirstOrDefault().Item.ToString()).Show();
+        }
 
-        private void GvlkInstall_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = true;
+        private void GvlkInstall_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
 
         private void GvlkInstall_Executed(object sender, ExecutedRoutedEventArgs e)
-          => new ProductBrowser(MainWindow, TextBoxGvlk.Text).Show();
+        {
+            new ProductBrowser(MainWindow, TextBoxGvlk.Text).Show();
+        }
 
         private void textBox_Gvlk_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -857,7 +861,7 @@ namespace HGM.Hotbird64.LicenseManager
                 StatusPanel.Visibility = Visibility.Collapsed;
                 InstallButton.Visibility = CheckButton.Visibility = Visibility.Collapsed;
                 TextBoxKeyId1.IsReadOnly = TextBoxKeyId2.IsReadOnly = true;
-                EPid epid = new EPid(textBox.Text);
+                EPid epid = new(textBox.Text);
 
                 try
                 {
@@ -901,7 +905,7 @@ namespace HGM.Hotbird64.LicenseManager
                 StatusPanel.Visibility = Visibility.Collapsed;
                 CheckButton.Visibility = InstallButton.Visibility = Visibility.Collapsed;
                 TextBoxKeyId1.IsReadOnly = TextBoxKeyId2.IsReadOnly = false;
-                KmsGuid guid = new KmsGuid(textBox.Text);
+                KmsGuid guid = new(textBox.Text);
 
                 await Task.Run(() =>
                 {
@@ -919,18 +923,9 @@ namespace HGM.Hotbird64.LicenseManager
                     KmsItem kmsItem = KmsLists.KmsItemList.FirstOrDefault(k => k.Guid == guid);
                     AppItem appItem = KmsLists.AppItemList.FirstOrDefault(a => a.Guid == guid);
 
-                    if (kmsItem != null)
-                    {
-                        TextBlockInputErrors.Text = $"This is not an SKU GUID but the KMS GUID for {kmsItem}";
-                    }
-                    else if (appItem != null)
-                    {
-                        TextBlockInputErrors.Text = $"This is not an SKU GUID but the Application GUID for {appItem}";
-                    }
-                    else
-                    {
-                        TextBlockInputErrors.Text = "The SKU GUID is unknown.";
-                    }
+                    TextBlockInputErrors.Text = kmsItem != null
+                        ? $"This is not an SKU GUID but the KMS GUID for {kmsItem}"
+                        : appItem != null ? $"This is not an SKU GUID but the Application GUID for {appItem}" : "The SKU GUID is unknown.";
 
                     ShowControls();
                 }
@@ -1029,7 +1024,7 @@ namespace HGM.Hotbird64.LicenseManager
 
             //DigitalProductId2 id2;
             //DigitalProductId3 id3;
-            DigitalProductId4 id4 = default(DigitalProductId4);
+            DigitalProductId4 id4 = default;
 
             PKeyConfigFile[] oldPKeyConfigFiles = PKeyConfigFiles.Where(f => f.IsOldKeyFormat).ToArray();
             SetBusy("Querying PidGenX.dll");
@@ -1101,7 +1096,7 @@ namespace HGM.Hotbird64.LicenseManager
         {
             if (!MainWindow.ControlsEnabled)
             {
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                   "The main window is currently busy. Try again in a few seconds.",
                   "Main Window Busy",
@@ -1151,7 +1146,7 @@ namespace HGM.Hotbird64.LicenseManager
                     IsEnabled = true;
                 }
 
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this, $"EPID \"{FullEPid}\" has {activationsRemaining} activation{(activationsRemaining == 1 ? "" : "s")} remaining.",
                     "Info from activation.sls.microsoft.com", MessageBoxButton.OK, MessageBoxImage.Information
@@ -1159,7 +1154,7 @@ namespace HGM.Hotbird64.LicenseManager
             }
             catch (EPidQueryException ex)
             {
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this, $"EPID \"{ex.EPid}\" check returned: \"{ex.Message}\"",
                     $"EPID Online Check Error {ex.ErrorCode}", MessageBoxButton.OK, MessageBoxImage.Error
@@ -1167,7 +1162,7 @@ namespace HGM.Hotbird64.LicenseManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this, ex.Message, "EPID Online Check Error", MessageBoxButton.OK, MessageBoxImage.Error
                 );
@@ -1176,10 +1171,7 @@ namespace HGM.Hotbird64.LicenseManager
 
         private void TextBoxEPid_OnTextChanged(object sender, TextChangedEventArgs e)
         {
-            if (CheckOnlineButton != null)
-            {
-                CheckOnlineButton.Visibility = Regex.IsMatch(((TextBox)sender).Text, PidGen.EpidPattern) ? Visibility.Visible : Visibility.Collapsed;
-            }
+            _ = (CheckOnlineButton?.Visibility = Regex.IsMatch(((TextBox)sender).Text, PidGen.EpidPattern) ? Visibility.Visible : Visibility.Collapsed);
         }
     }
 }

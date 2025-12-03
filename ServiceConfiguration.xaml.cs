@@ -2,7 +2,6 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Management;
 using System.Threading.Tasks;
@@ -16,48 +15,32 @@ namespace HGM.Hotbird64.LicenseManager
 {
     public partial class ServiceConfiguration
     {
-        private LicenseMachine.LicenseProvider licenseProvider;
+        private readonly LicenseMachine.LicenseProvider licenseProvider;
         private readonly LicenseMachine machine;
-        private bool kmsHostDirty;
         private bool serverParametersDirty;
         public bool MainDialogRefreshRequired;
         private MainWindow owner;
-        ManagementObject serviceParameters;
+        private ManagementObject serviceParameters;
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
         private bool KmsHostDirty
         {
-            get
-            {
-                return kmsHostDirty;
-            }
+            get;
             set
             {
-                kmsHostDirty = value;
+                field = value;
                 ButtonSave.IsEnabled = value;
             }
         }
-
-        /*private void CancelButton_Click(object sender, CancelEventArgs e)
-		{
-			if (!groupBox_Outer.Enabled)
-			{
-				e.Cancel = true;
-				MessageBox.Show(this, "Please wait for current action to complete.", "Be Patient", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-				return;
-			}
-			_dlg.label_Status.Text = "Ready";
-		}*/
 
         private async void GetParameters()
         {
             try
             {
-                await Task.Run(() => serviceParameters = machine.GetLicenseProviderParameters(licenseProvider.LicenseClassName));
+                _ = await Task.Run(() => serviceParameters = machine.GetLicenseProviderParameters(licenseProvider.LicenseClassName));
             }
             catch (Exception ex)
             {
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this,
                     ex.Message,
@@ -74,7 +57,7 @@ namespace HGM.Hotbird64.LicenseManager
 
         private void RefreshWindow()
         {
-            WmiProperty w = new WmiProperty("Version " + licenseProvider.Version, serviceParameters, MenuItemShowAllFields.IsChecked);
+            WmiProperty w = new("Version " + licenseProvider.Version, serviceParameters, MenuItemShowAllFields.IsChecked);
 
             w.DisplayProperty(LabelClientMachineId, TextBoxClientMachineID, "ClientMachineID");
 
@@ -157,17 +140,7 @@ namespace HGM.Hotbird64.LicenseManager
             w.DisplayProperty(LabelKeyManagementServiceCurrentCount, TextBoxKeyManagementServiceCurrentCount, "KeyManagementServiceCurrentCount");
             uint currentCount = (uint)w.Value;
 
-            if (kmsServerEnabled)
-            {
-                if (currentCount < requiredClientCount)
-                    TextBoxKeyManagementServiceCurrentCount.Background = Brushes.OrangeRed;
-                else
-                    TextBoxKeyManagementServiceCurrentCount.Background = Brushes.LightGreen;
-            }
-            else
-            {
-                TextBoxKeyManagementServiceCurrentCount.Background = App.DefaultTextBoxBackground;
-            }
+            TextBoxKeyManagementServiceCurrentCount.Background = kmsServerEnabled ? currentCount < requiredClientCount ? Brushes.OrangeRed : Brushes.LightGreen : App.DefaultTextBoxBackground;
 
 
             w.DisplayProperty(LabelKeyManagementServiceTotalRequests, TextBoxKeyManagementServiceTotalRequests, "KeyManagementServiceTotalRequests");
@@ -224,15 +197,9 @@ namespace HGM.Hotbird64.LicenseManager
 
         private static T GetControlContent<T>(Control control, T t)
         {
-            if (control.IsEnabled && control.Visibility == Visibility.Visible)
-            {
-                return t;
-            }
-
-            return default(T);
+            return control.IsEnabled && control.Visibility == Visibility.Visible ? t : default;
         }
 
-        [SuppressMessage("ReSharper", "PossibleInvalidOperationException")]
         private async void button_Save_Click(object sender, RoutedEventArgs e)
         {
             LabelServiceStatus.Text = "Saving KMS settings";
@@ -277,7 +244,7 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 LabelServiceStatus.Text = "Error saving settings";
 
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this,
                     ex.Message,
@@ -314,7 +281,7 @@ namespace HGM.Hotbird64.LicenseManager
         {
             MainDialogRefreshRequired = true;
 
-            OpenFileDialog openFileDialog = new OpenFileDialog
+            OpenFileDialog openFileDialog = new()
             {
                 Filter = "License files (*.xrm-ms)|*.xrm-ms|All files (*.*)|*",
                 Multiselect = true,
@@ -324,7 +291,7 @@ namespace HGM.Hotbird64.LicenseManager
 
 
             LabelServiceStatus.Text = "Installing License Files";
-            openFileDialog.ShowDialog(this);
+            _ = openFileDialog.ShowDialog(this);
 
             IEnumerable<string> fileNames = openFileDialog.FileNames;
 
@@ -335,7 +302,7 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 foreach (string fileName in fileNames)
                 {
-                    Dispatcher.Invoke(() => LabelServiceStatus.Text = "Installing " + Path.GetFileName(fileName));
+                    _ = Dispatcher.Invoke(() => LabelServiceStatus.Text = "Installing " + Path.GetFileName(fileName));
 
                     try
                     {
@@ -363,7 +330,7 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 LabelServiceStatus.Text = "Error while Installing Files";
 
-                MessageBox.Show
+                _ = MessageBox.Show
                 (
                     this,
                     errorstring,
@@ -379,7 +346,7 @@ namespace HGM.Hotbird64.LicenseManager
 
         private void HandleServiceError(Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Service Control Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _ = MessageBox.Show(this, ex.Message, "Service Control Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private async void startToolStripMenuItem_Click(object sender, EventArgs e)
@@ -471,11 +438,11 @@ namespace HGM.Hotbird64.LicenseManager
 
                 await Task.Run(() =>
                 {
-                    machine.StopService(licenseProvider);
-                    machine.StartService(licenseProvider);
+                    _ = machine.StopService(licenseProvider);
+                    _ = machine.StartService(licenseProvider);
                 });
 
-                MessageBox.Show(this, licenseProvider.FriendlyName + " has been restarted.", "Success",
+                _ = MessageBox.Show(this, licenseProvider.FriendlyName + " has been restarted.", "Success",
                                 MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -497,12 +464,12 @@ namespace HGM.Hotbird64.LicenseManager
 
                 await Task.Run(() => machine.RefreshLicenseStatus(licenseProvider));
 
-                MessageBox.Show(this, licenseProvider.FriendlyName + " has been reloaded.", "Success",
+                _ = MessageBox.Show(this, licenseProvider.FriendlyName + " has been reloaded.", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, "Error Reloading Service", MessageBoxButton.OK, MessageBoxImage.Error);
+                _ = MessageBox.Show(this, ex.Message, "Error Reloading Service", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             LabelServiceStatus.Text = "";
@@ -525,13 +492,13 @@ namespace HGM.Hotbird64.LicenseManager
 
                     await Task.Run(() => machine.ReArmWindows(licenseProvider));
 
-                    MessageBox.Show(this, licenseProvider.FriendlyName +
+                    _ = MessageBox.Show(this, licenseProvider.FriendlyName +
                                     " has been rearmed. Reboot your machine as soon as possible.",
                                     "Rearm Successful", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(this, ex.Message, "Error Rearming " + licenseProvider.FriendlyName,
+                    _ = MessageBox.Show(this, ex.Message, "Error Rearming " + licenseProvider.FriendlyName,
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 

@@ -34,7 +34,10 @@ namespace HGM.Hotbird64.Vlmcs
             }
             set
             {
-                if (value.Length > 63) throw new ArgumentException("Maximum is 63 chars.", nameof(UnsafeText));
+                if (value.Length > 63)
+                {
+                    throw new ArgumentException("Maximum is 63 chars.", nameof(UnsafeText));
+                }
 
                 fixed (char* c = UnsafeText)
                 {
@@ -56,40 +59,92 @@ namespace HGM.Hotbird64.Vlmcs
 
         public ushort Major
         {
-            get { return (ushort)(Full >> 16); }
-            set { Full = ((uint)value) << 16 | Full & 0xffff; }
+            get => (ushort)(Full >> 16); set => Full = (((uint)value) << 16) | (Full & 0xffff);
         }
 
         public ushort Minor
         {
-            get { return (ushort)(Full & 0xffff); }
-            set { Full = value | (Full & 0xffff0000); }
+            get => (ushort)(Full & 0xffff); set => Full = value | (Full & 0xffff0000);
         }
 
-        public override string ToString() => $"{Major}.{Minor}";
+        public override string ToString()
+        {
+            return $"{Major}.{Minor}";
+        }
 
         public static explicit operator ProtocolVersion(string versionString)
         {
             ProtocolVersion result = new();
             string[] split = versionString.Split('.');
-            if (split.Length != 2) throw new FormatException("KMS protocol must contain exactly one period.");
+            if (split.Length != 2)
+            {
+                throw new FormatException("KMS protocol must contain exactly one period.");
+            }
+
             result.Major = ushort.Parse(split[0], CultureInfo.InvariantCulture);
             result.Minor = ushort.Parse(split[1], CultureInfo.InvariantCulture);
             return result;
         }
 
-        public override bool Equals(object obj) => obj is ProtocolVersion && (ProtocolVersion)obj == this;
-        public static bool operator ==(ProtocolVersion a, ProtocolVersion b) => a.Full == b.Full;
-        public static bool operator !=(ProtocolVersion a, ProtocolVersion b) => a.Full != b.Full;
-        public static bool operator >(ProtocolVersion a, ProtocolVersion b) => a.Full > b.Full;
-        public static bool operator <(ProtocolVersion a, ProtocolVersion b) => a.Full < b.Full;
-        public static bool operator >=(ProtocolVersion a, ProtocolVersion b) => a.Full >= b.Full;
-        public static bool operator <=(ProtocolVersion a, ProtocolVersion b) => a.Full <= b.Full;
-        public static explicit operator uint(ProtocolVersion a) => a.Full;
-        public static explicit operator ProtocolVersion(uint a) => new() { Full = a };
-        public override int GetHashCode() => unchecked((int)Full);
-        public int CompareTo(ProtocolVersion other) => this == other ? 0 : this > other ? 1 : -1;
-        public bool Equals(ProtocolVersion other) => this == other;
+        public override bool Equals(object obj)
+        {
+            return obj is ProtocolVersion && (ProtocolVersion)obj == this;
+        }
+
+        public static bool operator ==(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full == b.Full;
+        }
+
+        public static bool operator !=(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full != b.Full;
+        }
+
+        public static bool operator >(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full > b.Full;
+        }
+
+        public static bool operator <(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full < b.Full;
+        }
+
+        public static bool operator >=(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full >= b.Full;
+        }
+
+        public static bool operator <=(ProtocolVersion a, ProtocolVersion b)
+        {
+            return a.Full <= b.Full;
+        }
+
+        public static explicit operator uint(ProtocolVersion a)
+        {
+            return a.Full;
+        }
+
+        public static explicit operator ProtocolVersion(uint a)
+        {
+            return new() { Full = a };
+        }
+
+        public override int GetHashCode()
+        {
+            return unchecked((int)Full);
+        }
+
+        public int CompareTo(ProtocolVersion other)
+        {
+            return this == other ? 0 : this > other ? 1 : -1;
+        }
+
+        public bool Equals(ProtocolVersion other)
+        {
+            return this == other;
+        }
     }
 
 
@@ -182,7 +237,10 @@ namespace HGM.Hotbird64.Vlmcs
             }
             set
             {
-                if (value.Length != 8) throw new ArgumentException("Must be exactly 8 bytes.", nameof(ByteArray));
+                if (value.Length != 8)
+                {
+                    throw new ArgumentException("Must be exactly 8 bytes.", nameof(ByteArray));
+                }
 
                 fixed (byte* b = Data)
                 {
@@ -210,9 +268,12 @@ namespace HGM.Hotbird64.Vlmcs
             }
             set
             {
-                string cleanhex = value.ToUpperInvariant().Where(c => c >= '0' && c <= 'F').Where(c => c <= '9' || c >= 'A').Aggregate("", (current, c) => current + c);
+                string cleanhex = value.ToUpperInvariant().Where(c => c is >= '0' and <= 'F').Where(c => c is <= '9' or >= 'A').Aggregate("", (current, c) => current + c);
 
-                if (cleanhex.Length != 16) throw new ArgumentException("Hardware ID must be exactly 8 hex bytes.", nameof(HwId));
+                if (cleanhex.Length != 16)
+                {
+                    throw new ArgumentException("Hardware ID must be exactly 8 hex bytes.", nameof(HwId));
+                }
 
                 byte[] hwId = new byte[8];
 
@@ -226,7 +287,7 @@ namespace HGM.Hotbird64.Vlmcs
         }
     }
 
-    public struct KmsResult
+    public readonly struct KmsResult
     {
         private readonly uint result;
         public readonly ProtocolVersion Version;
@@ -241,16 +302,16 @@ namespace HGM.Hotbird64.Vlmcs
         public uint EffectiveResponseSize => (result >> 14) & 0x1ff;
 
         public bool? IsValidResponseSize => CorrectResponseSize == EffectiveResponseSize;
-        public bool? IsDecryptSuccess => Version.Major < 5 ? null : (bool?)((result & (int)ResultCode.DecryptSuccess) != 0);
+        public bool? IsDecryptSuccess => Version.Major < 5 ? null : (result & (int)ResultCode.DecryptSuccess) != 0;
         public bool? IsValidHash => (result & (int)ResultCode.IsValidHash) != 0;
         public bool? IsValidTimeStamp => (result & (int)ResultCode.IsValidTimeStamp) != 0;
         public bool? IsValidClientMachineId => (result & (int)ResultCode.IsValidClientMachineId) != 0;
         public bool? IsValidProtocolVersion => (result & (int)ResultCode.IsValidProtocolVersion) != 0;
-        public bool? IsValidInitializationVector => Version.Major < 5 ? null : (bool?)((result & (int)ResultCode.IsValidInitializationVector) != 0);
-        public bool? IsValidHmac => Version.Major < 6 ? null : (bool?)((result & (int)ResultCode.IsValidHmac) != 0);
+        public bool? IsValidInitializationVector => Version.Major < 5 ? null : (result & (int)ResultCode.IsValidInitializationVector) != 0;
+        public bool? IsValidHmac => Version.Major < 6 ? null : (result & (int)ResultCode.IsValidHmac) != 0;
         public bool? IsValidPidLength => (result & (int)ResultCode.IsValidPidLength) != 0;
         public bool? IsRpcStatusSuccess => (result & (int)ResultCode.IsRpcStatusSuccess) != 0;
-        public bool? IsSuspiciousInitializationVector => Version.Major < 6 ? null : (bool?)((result & (int)ResultCode.IsRandomInitializationVector) == 0);
+        public bool? IsSuspiciousInitializationVector => Version.Major < 6 ? null : (result & (int)ResultCode.IsRandomInitializationVector) == 0;
     }
 
     public class KmsClient : IDisposable
@@ -287,19 +348,14 @@ namespace HGM.Hotbird64.Vlmcs
 
         public string ConnectTcp(AddressFamily addressFamily)
         {
-            if (addressFamily != AddressFamily.InterNetwork && addressFamily != AddressFamily.InterNetworkV6 && addressFamily != AddressFamily.Unspecified)
+            if (addressFamily is not AddressFamily.InterNetwork and not AddressFamily.InterNetworkV6 and not AddressFamily.Unspecified)
             {
                 throw new ArgumentException("Must be InterNetwork (IPv4), InterNetworkV6 (IPv6) or Unspecified (IPv4 and IPv6)", nameof(addressFamily));
             }
 
             ctx = ConnectToServer(HostnamePunycode, Port.ToString(CultureInfo.InvariantCulture), (int)addressFamily);
 
-            if (ctx == invalidCtx)
-            {
-                throw new KmsException(LibKmsMessage);
-            }
-
-            return LibKmsMessage;
+            return ctx == invalidCtx ? throw new KmsException(LibKmsMessage) : LibKmsMessage;
         }
 
         public RpcDiag ConnectRpc(bool useMultiplexedRpc, bool useNdr64, bool useBtfn)
@@ -307,7 +363,11 @@ namespace HGM.Hotbird64.Vlmcs
             RpcDiag rpcDiag = default;
             int rpcStatus = BindRpc(ctx, useMultiplexedRpc, useNdr64, useBtfn, ref rpcDiag);
 
-            if (rpcStatus == 0) return rpcDiag;
+            if (rpcStatus == 0)
+            {
+                return rpcDiag;
+            }
+
             Win32Exception exception = new(rpcStatus);
             throw new KmsException(LibKmsMessage, exception);
         }
@@ -364,15 +424,34 @@ namespace HGM.Hotbird64.Vlmcs
 
                         if (status != 0)
                         {
-                            if (!string.IsNullOrWhiteSpace(LibKmsMessage)) errorMessage.AppendLine(LibKmsMessage);
-                            if (status == 87 || status == 0x8007000D) errorMessage.AppendLine("The server did not understand the KMS request.");
-                            if (status == ~0U) errorMessage.AppendLine("The KMS server has declined the activation request.");
-                            if (status == 0x6b5) errorMessage.AppendLine("The RPC server does not support KMS.");
-                            if (status == 1820) Close();
+                            if (!string.IsNullOrWhiteSpace(LibKmsMessage))
+                            {
+                                _ = errorMessage.AppendLine(LibKmsMessage);
+                            }
+
+                            if (status is 87 or 0x8007000D)
+                            {
+                                _ = errorMessage.AppendLine("The server did not understand the KMS request.");
+                            }
+
+                            if (status == ~0U)
+                            {
+                                _ = errorMessage.AppendLine("The KMS server has declined the activation request.");
+                            }
+
+                            if (status == 0x6b5)
+                            {
+                                _ = errorMessage.AppendLine("The RPC server does not support KMS.");
+                            }
+
+                            if (status == 1820)
+                            {
+                                Close();
+                            }
 
                             if (status != ~0U)
                             {
-                                errorMessage.AppendLine(Kms.StatusMessage(status));
+                                _ = errorMessage.AppendLine(Kms.StatusMessage(status));
                             }
 
                             throw new KmsException(errorMessage.ToString(), status != ~0U ? new Win32Exception(unchecked((int)status)) : null);
@@ -382,30 +461,70 @@ namespace HGM.Hotbird64.Vlmcs
                         hwId = ((HwId)Marshal.PtrToStructure(hwIdPtr, typeof(HwId))).ByteArray;
                         KmsResult kmsResult = new(result, baseResponse.Version);
 
-                        if ((result & (int)ResultCode.DecryptSuccess) == 0) errorMessage.AppendLine("AES Decryption of KMS response failed.");
-                        if ((result & (int)ResultCode.IsValidPidLength) == 0) errorMessage.AppendLine("The length field of the KMS PID is not valid.");
-                        if ((result & (int)ResultCode.IsValidInitializationVector) == 0) errorMessage.AppendLine("IVs (salts) of KMS request and response do not match.");
-                        if ((result & (int)ResultCode.IsValidProtocolVersion) == 0) errorMessage.AppendLine("KMS response version does not match request.");
-                        if ((result & (int)ResultCode.IsValidClientMachineId) == 0) errorMessage.AppendLine("Client Machine ID of request and response do not match.");
-                        if ((result & (int)ResultCode.IsValidTimeStamp) == 0) errorMessage.AppendLine("Time stamp of KMS request and response do not match.");
-                        if ((result & (int)ResultCode.IsValidHash) == 0) errorMessage.AppendLine("Hash of KMS response is not valid.");
-                        if ((result & (int)ResultCode.IsValidHmac) == 0) errorMessage.AppendLine("HMAC is not correct.");
-                        if ((result & (int)ResultCode.IsRpcStatusSuccess) == 0) errorMessage.AppendLine("RPC returned non-zero result code.");
-                        if ((result & (int)ResultCode.IsRandomInitializationVector) == 0) warnings += "Non-random initialization vector (salt) used in KMSv6 protocol.\n";
+                        if ((result & (int)ResultCode.DecryptSuccess) == 0)
+                        {
+                            _ = errorMessage.AppendLine("AES Decryption of KMS response failed.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidPidLength) == 0)
+                        {
+                            _ = errorMessage.AppendLine("The length field of the KMS PID is not valid.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidInitializationVector) == 0)
+                        {
+                            _ = errorMessage.AppendLine("IVs (salts) of KMS request and response do not match.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidProtocolVersion) == 0)
+                        {
+                            _ = errorMessage.AppendLine("KMS response version does not match request.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidClientMachineId) == 0)
+                        {
+                            _ = errorMessage.AppendLine("Client Machine ID of request and response do not match.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidTimeStamp) == 0)
+                        {
+                            _ = errorMessage.AppendLine("Time stamp of KMS request and response do not match.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidHash) == 0)
+                        {
+                            _ = errorMessage.AppendLine("Hash of KMS response is not valid.");
+                        }
+
+                        if ((result & (int)ResultCode.IsValidHmac) == 0)
+                        {
+                            _ = errorMessage.AppendLine("HMAC is not correct.");
+                        }
+
+                        if ((result & (int)ResultCode.IsRpcStatusSuccess) == 0)
+                        {
+                            _ = errorMessage.AppendLine("RPC returned non-zero result code.");
+                        }
+
+                        if ((result & (int)ResultCode.IsRandomInitializationVector) == 0)
+                        {
+                            warnings += "Non-random initialization vector (salt) used in KMSv6 protocol.\n";
+                        }
 
                         uint correctResponseSize = result >> 23;
                         uint effectiveResponseSize = (result >> 14) & 0x1ff;
 
                         if (correctResponseSize != effectiveResponseSize)
                         {
-                            errorMessage.AppendFormat("KMS server reponse has an incorrect size of {0} bytes. Should be {1}.{2}", effectiveResponseSize, correctResponseSize, Environment.NewLine);
+                            _ = errorMessage.AppendFormat("KMS server reponse has an incorrect size of {0} bytes. Should be {1}.{2}", effectiveResponseSize, correctResponseSize, Environment.NewLine);
                         }
 
                         errors = errorMessage.ToString();
-                        if (errorMessage.Length != 0 && throwOnBadResult) throw new KmsException(errorMessage.ToString());
-                        if (throwOnInsufficientClients && baseResponse.KMSCurrentCount < baseRequest.RequiredClientCount) throw new KmsException("The required count is not sufficient.");
-
-                        return kmsResult;
+                        return errorMessage.Length != 0 && throwOnBadResult
+                            ? throw new KmsException(errorMessage.ToString())
+                            : throwOnInsufficientClients && baseResponse.KMSCurrentCount < baseRequest.RequiredClientCount
+                            ? throw new KmsException("The required count is not sufficient.")
+                            : kmsResult;
                     }
                     finally
                     {
@@ -514,22 +633,37 @@ namespace HGM.Hotbird64.Vlmcs
               BindRpc32(socket, useMultiplexedRpc, useNdr64, useBtfn, ref rpcDiag);
         }
 
+        // LibKMS 32
         [DllImport("libkms32.dll", EntryPoint = "GetErrorMessage", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern IntPtr GetErrorMessage32();
-
-        [DllImport("libkms64.dll", EntryPoint = "GetErrorMessage", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern IntPtr GetErrorMessage64();
-
-        private static IntPtr GetErrorMessage()
-        {
-            return IntPtr.Size == 8 ? GetErrorMessage64() : GetErrorMessage32();
-        }
 
         [DllImport("libkms32.dll", EntryPoint = "CloseConnection", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern void CloseConnection32(IntPtr ctx);
 
+        [DllImport("libkms32.dll", EntryPoint = "SendKMSRequest", CallingConvention = CallingConvention.Cdecl, BestFitMapping = false, SetLastError = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true, ExactSpelling = true)]
+        private static extern uint SendKMSRequest32(IntPtr ctx, IntPtr baseResponse, IntPtr baseRequest, out uint result, IntPtr hwId);
+
+        [DllImport("libkms32.dll", EntryPoint = "IsDisconnected", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern byte IsDisconnected32(IntPtr ctx);
+
+        // LibKMS 64
+
+        [DllImport("libkms64.dll", EntryPoint = "GetErrorMessage", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern IntPtr GetErrorMessage64();
         [DllImport("libkms64.dll", EntryPoint = "CloseConnection", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern void CloseConnection64(IntPtr ctx);
+
+        [DllImport("libkms64.dll", EntryPoint = "SendKMSRequest", CallingConvention = CallingConvention.Cdecl, BestFitMapping = false, SetLastError = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true, ExactSpelling = true)]
+        private static extern uint SendKMSRequest64(IntPtr ctx, IntPtr baseResponse, IntPtr baseRequest, out uint result, IntPtr hwId);
+
+        [DllImport("libkms64.dll", EntryPoint = "IsDisconnected", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
+        private static extern byte IsDisconnected64(IntPtr ctx);
+
+        // General methods
+        private static IntPtr GetErrorMessage()
+        {
+            return IntPtr.Size == 8 ? GetErrorMessage64() : GetErrorMessage32();
+        }
 
         private static void CloseConnection(IntPtr ctx)
         {
@@ -543,12 +677,6 @@ namespace HGM.Hotbird64.Vlmcs
             }
         }
 
-        [DllImport("libkms32.dll", EntryPoint = "SendKMSRequest", CallingConvention = CallingConvention.Cdecl, BestFitMapping = false, SetLastError = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true, ExactSpelling = true)]
-        private static extern uint SendKMSRequest32(IntPtr ctx, IntPtr baseResponse, IntPtr baseRequest, out uint result, IntPtr hwId);
-
-        [DllImport("libkms64.dll", EntryPoint = "SendKMSRequest", CallingConvention = CallingConvention.Cdecl, BestFitMapping = false, SetLastError = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true, ExactSpelling = true)]
-        private static extern uint SendKMSRequest64(IntPtr ctx, IntPtr baseResponse, IntPtr baseRequest, out uint result, IntPtr hwId);
-
         private static uint SendKmsRequest(IntPtr ctx, IntPtr baseResponse, IntPtr baseRequest, out uint result, IntPtr hwId)
         {
             return IntPtr.Size == 8
@@ -556,11 +684,9 @@ namespace HGM.Hotbird64.Vlmcs
               : SendKMSRequest32(ctx, baseResponse, baseRequest, out result, hwId);
         }
 
-        [DllImport("libkms32.dll", EntryPoint = "IsDisconnected", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern byte IsDisconnected32(IntPtr ctx);
 
-        [DllImport("libkms64.dll", EntryPoint = "IsDisconnected", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
-        private static extern byte IsDisconnected64(IntPtr ctx);
+
+
 
         private static byte IsDisconnected(IntPtr ctx)
         {
@@ -589,20 +715,20 @@ namespace HGM.Hotbird64.Vlmcs
             GC.SuppressFinalize(this);
         }
 
-        public void Close() => Dispose(false);
+        public void Close()
+        {
+            Dispose(false);
+        }
     }
 
     public static class Kms
     {
-        public static readonly ProtocolVersion RequiredDllVersion = new ProtocolVersion { Major = 4, Minor = 0 };
-        public static IdnMapping Idn = new IdnMapping();
+        public static readonly ProtocolVersion RequiredDllVersion = new() { Major = 4, Minor = 0 };
+        public static IdnMapping Idn = new();
 
         public static readonly KmsGuid O2010Guid = new("59a52881-a989-479d-af46-f275c6370663");
         public static readonly KmsGuid O2013Guid = new("0ff1ce15-a989-479d-af46-f275c6370663");
         public static readonly KmsGuid WinGuid = new("55c92734-d682-4d71-983e-d6ec3f16059f");
-        //private static readonly IDictionary<uint, string> platformId = new Dictionary<uint, string>();
-        //public static IReadOnlyDictionary<uint, string> PlatformId => (IReadOnlyDictionary<uint, string>)platformId;
-
 
         static Kms()
         {
@@ -618,35 +744,48 @@ namespace HGM.Hotbird64.Vlmcs
         {
             CheckDllVersion();
             int status = StopKmsServer();
-            if (status != 0) throw new KmsException("KMS Service is already stopped");
+            if (status != 0)
+            {
+                throw new KmsException("KMS Service is already stopped");
+            }
         }
 
         public static void StartServer(int port, KmsServerCallback callback)
         {
             CheckDllVersion();
-            if (port < 1 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port), port, "Port must be between 1 and 65535.");
+            if (port is < 1 or > 65535)
+            {
+                throw new ArgumentOutOfRangeException(nameof(port), port, "Port must be between 1 and 65535.");
+            }
 
             int status = StartKmsServer(port, callback);
-            if (status == 0) return;
-            Win32Exception winException = new Win32Exception(status);
+            if (status == 0)
+            {
+                return;
+            }
+
+            Win32Exception winException = new(status);
             throw new KmsException($"Could not start a KMS server on port {port}: {winException.Message}", winException);
         }
 
         internal static void CheckDllVersion()
         {
-            if (ApiVersion < RequiredDllVersion) throw new DllNotFoundException(
+            if (ApiVersion < RequiredDllVersion)
+            {
+                throw new DllNotFoundException(
               $"libkms32.dll Version {RequiredDllVersion.Major}.{RequiredDllVersion.Minor} or greater required."
             );
+            }
         }
 
         public static string StatusMessage(uint hResult)  //BUGBUG: Better read %SystemDrive%\System32\slmgr\<localization dir>\slmgr.ini to get error messages (even though this file is awfully buggy).
         {
             switch (hResult)
             {
+                case 0: return "The product was activated.";
+                case 0x4004F040: return "The product was activated but the owner should verify the Product Use Rights.";
                 case 0x4004F00C: return "The application is running within the valid grace period.";
                 case 0x4004F00D: return "Application is within valid OOT Grace";
-                case 0:
-                case 0x4004F040: return "The product was activated.";
                 case 0x4004F401: return "The product has a store license.";
                 case 0x4004FC04: return "The application is running within the time-based validity period.";
                 case 0x8007000D: return "The KMS host you are using is unable to handle your product. It only supports legacy versions.";
@@ -667,8 +806,8 @@ namespace HGM.Hotbird64.Vlmcs
                 case 0xC004F00F: return "The hardware ID binding is beyond level of tolerance.";
                 case 0xC004F012: return "The value for the input key was not found.";
                 case 0xC004F014: return "The product key is not available.";
-                case 0xC004F015:
-                case 0xC004F017: return "The required license is not installed.";
+                case 0xC004F015: return "The required license is not installed. (E_PRODUCT_SKU_NOT_INSTALLED)";
+                case 0xC004F017: return "The required license is not installed. (E_PUBLISHING_LICENSE_NOT_INSTALLED)";
                 case 0xc004F01D: return "The verification of the license failed.";
                 case 0xC004F01F: return "The license data is invalid.";
                 case 0xC004F025: return "Access denied: the requested action requires elevated privileges.";
@@ -700,11 +839,11 @@ namespace HGM.Hotbird64.Vlmcs
                 case 0xC004F312: return "The computer could not be activated. The certificate cannot be used because its private key is exportable.";
                 case 0xC004FE00: return "The License Data Store has been tampered with. Reactivation required.";
                 case 0x8A010101: return "They is not recognized by the pkeyconfig file.";
-                /*case 0x80070057: return "The parameter is incorrect";
-                        case 0x8007232A: return "DNS server failure";
-                        case 0x8007232B: return "DNS name does not exist";
-                        case 0x800706BA: return "The RPC server is unavailable";
-                        case 0x8007251D: return "No records found for DNS query";*/
+                case 0x80070057: return "The parameter is incorrect";
+                case 0x8007232A: return "DNS server failure";
+                case 0x8007232B: return "DNS name does not exist";
+                case 0x800706BA: return "The RPC server is unavailable";
+                case 0x8007251D: return "No records found for DNS query";
                 case 0x80072ee7: return "Microsoft activation server could not be reached.";
 
                 default:
@@ -719,6 +858,8 @@ namespace HGM.Hotbird64.Vlmcs
             }
         }
 
+        // LibKMS 32
+
         [DllImport("libkms32.dll", EntryPoint = "StartKmsServer", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern int StartKmsServer32(int port, KmsServerCallback callback);
 
@@ -730,6 +871,9 @@ namespace HGM.Hotbird64.Vlmcs
 
         [DllImport("libkms32.dll", EntryPoint = "GetEmulatorVersion", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern IntPtr GetEmulatorVersion32();
+
+        // LibKMS 64
+
         [DllImport("libkms64.dll", EntryPoint = "StartKmsServer", CallingConvention = CallingConvention.Cdecl, SetLastError = false, CharSet = CharSet.Ansi, ExactSpelling = true)]
         private static extern int StartKmsServer64(int port, KmsServerCallback callback);
 

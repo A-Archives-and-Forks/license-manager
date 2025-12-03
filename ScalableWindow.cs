@@ -8,7 +8,7 @@ namespace HGM.Hotbird64.LicenseManager
 {
     public class ScalableWindow : Window
     {
-        public ScaleTransform Scaler = new ScaleTransform(1, 1);
+        public ScaleTransform Scaler = new(1, 1);
         public MainWindow MainWindow { get; protected set; }
 
         public ScalableWindow()
@@ -26,7 +26,10 @@ namespace HGM.Hotbird64.LicenseManager
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
             e.Handled = false;
-            if (Keyboard.IsKeyUp(Key.LeftCtrl) && Keyboard.IsKeyUp(Key.RightCtrl)) return;
+            if (Keyboard.IsKeyUp(Key.LeftCtrl) && Keyboard.IsKeyUp(Key.RightCtrl))
+            {
+                return;
+            }
 
             e.Handled = true;
 
@@ -107,17 +110,7 @@ namespace HGM.Hotbird64.LicenseManager
 
             e.Handled = true;
 
-            double tempScale;
-
-            if (e.Delta > 0)
-            {
-                tempScale = App.ZoomFactor;
-            }
-            else
-            {
-                tempScale = 1 / App.ZoomFactor;
-            }
-
+            double tempScale = e.Delta > 0 ? App.ZoomFactor : 1 / App.ZoomFactor;
             Height *= tempScale;
             Width *= tempScale;
             Scaler.ScaleX *= tempScale;

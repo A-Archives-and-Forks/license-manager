@@ -21,12 +21,11 @@ namespace HGM.Hotbird64.Vlmcs
 
         public BinaryProductKey BinaryKey { get; private set; }
         public string EPid => BinaryProductKey.GetEpid(BinaryKey, MsKeyType);
-        private static CultureInfo osSystemLocale;
 
         public static CultureInfo OsSystemLocale
         {
-            get => osSystemLocale ?? CultureInfo.InstalledUICulture;
-            set => osSystemLocale = value;
+            get => field ?? CultureInfo.InstalledUICulture;
+            set;
         }
 
         public KeyBase(string key, KeyType keyType)
@@ -74,25 +73,17 @@ namespace HGM.Hotbird64.Vlmcs
         }
 
 
-        public string KeyTypeString
+        public string KeyTypeString => KeyType switch
         {
-            get
-            {
-                switch (KeyType)
-                {
-                    case KeyType.Gvlk: return "GVLK";
-                    case KeyType.GvlkGenerated: return "user-generated GVLK";
-                    case KeyType.StoreLicense: return "Store License";
-                    default: return "unknown";
-                }
-            }
-        }
+            KeyType.Gvlk => "GVLK",
+            KeyType.GvlkGenerated => "user-generated GVLK",
+            KeyType.StoreLicense => "Store License",
+            _ => "unknown",
+        };
 
         public override bool Equals(object obj)
         {
-            IProductKey other = obj as IProductKey;
-            if (other == null) return false;
-            return Key == other.Key;
+            return obj is IProductKey other && Key == other.Key;
         }
 
         public override int GetHashCode()
@@ -100,13 +91,19 @@ namespace HGM.Hotbird64.Vlmcs
             return Key.GetHashCode();
         }
 
-        public override string ToString() => Key;
+        public override string ToString()
+        {
+            return Key;
+        }
     }
 
     public class ProductKey : KeyBase
     {
         public string Name { get; set; }
-        public override string ToString() => Name;
+        public override string ToString()
+        {
+            return Name;
+        }
 
         public ProductKey(string name, string key, KeyType keytype) : base(key, keytype)
         {

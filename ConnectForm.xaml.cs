@@ -1,6 +1,5 @@
 ﻿using HGM.Hotbird64.Vlmcs;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,14 +11,13 @@ namespace HGM.Hotbird64.LicenseManager
     {
         private readonly LicenseMachine machine;
         private bool showUI;
-        private readonly NativeMethods.AuthPrompt auth = new NativeMethods.AuthPrompt();
+        private readonly NativeMethods.AuthPrompt auth = new();
         private NativeMethods.AuthPrompt.CredUiReturnCodes rc;
         private readonly MainWindow parent;
 
         private string ComputerName
         {
-            get { return Dispatcher.Invoke(() => Kms.Idn.GetAscii(TextBoxComputername.Text)); }
-            set { Dispatcher.InvokeAsync(() => TextBoxComputername.Text = Kms.Idn.GetUnicode(value)); }
+            get => Dispatcher.Invoke(() => Kms.Idn.GetAscii(TextBoxComputername.Text)); set => _ = Dispatcher.InvokeAsync(() => TextBoxComputername.Text = Kms.Idn.GetUnicode(value));
         }
 
         public ConnectForm(MainWindow parent)
@@ -54,7 +52,7 @@ namespace HGM.Hotbird64.LicenseManager
                 if (showUI)
                 {
                     parent.LabelStatus.Text = "Access denied";
-                    MessageBox.Show(ex.Message, "Access denied", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _ = MessageBox.Show(ex.Message, "Access denied", MessageBoxButton.OK, MessageBoxImage.Error);
                     parent.LabelStatus.Text = "Getting Computer Name";
                 }
                 else
@@ -68,15 +66,11 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 parent.IsProgressBarRunning = false;
                 parent.LabelStatus.Text = "DCOM Error";
-                switch ((uint)ex.ErrorCode)
+                _ = (uint)ex.ErrorCode switch
                 {
-                    case 0x80070776:
-                        MessageBox.Show(ex.Message, "Microsoft Is Lame", MessageBoxButton.OK, MessageBoxImage.Error);
-                        break;
-                    default:
-                        MessageBox.Show(ex.Message, "DCOM Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        break;
-                }
+                    0x80070776 => MessageBox.Show(ex.Message, "Microsoft Is Lame", MessageBoxButton.OK, MessageBoxImage.Error),
+                    _ => MessageBox.Show(ex.Message, "DCOM Error", MessageBoxButton.OK, MessageBoxImage.Error),
+                };
                 parent.LabelStatus.Text = "Getting Computer Name";
                 MainGrid.IsEnabled = true;
             }
@@ -84,18 +78,17 @@ namespace HGM.Hotbird64.LicenseManager
             {
                 parent.IsProgressBarRunning = false;
                 parent.LabelStatus.Text = "Error";
-                MessageBox.Show("The following error occured: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _ = MessageBox.Show("The following error occured: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 parent.LabelStatus.Text = "Getting Computer Name";
                 MainGrid.IsEnabled = true;
             }
         }
 
-        [SuppressMessage("ReSharper", "PossibleInvalidOperationException")]
-        public async void button_Connect_Click(object sender, RoutedEventArgs e)
+        public async void Button_Connect_Click(object sender, RoutedEventArgs e)
         {
             if (ComputerName == "")
             {
-                MessageBox.Show("Try entering something in the field Computername!", "Noob Alert!!!", MessageBoxButton.OK, MessageBoxImage.Error);
+                _ = MessageBox.Show("Try entering something in the field Computername!", "Noob Alert!!!", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -105,7 +98,11 @@ namespace HGM.Hotbird64.LicenseManager
             if (ComputerName != ".")
             {
                 auth.ServerName = ComputerName;
-                if (!showUI) showUI = CheckBoxShowUi.IsChecked.Value;
+                if (!showUI)
+                {
+                    showUI = CheckBoxShowUi.IsChecked.Value;
+                }
+
                 MainGrid.IsEnabled = false;
 
                 rc = auth.PromptForPassword(showUI,
@@ -125,10 +122,10 @@ namespace HGM.Hotbird64.LicenseManager
             await Connect_Worker();
         }
 
-        private void button_Local_Click(object sender, RoutedEventArgs e)
+        private void Button_Local_Click(object sender, RoutedEventArgs e)
         {
             ComputerName = ".";
-            button_Connect_Click(sender, e);
+            Button_Connect_Click(sender, e);
         }
 
     }

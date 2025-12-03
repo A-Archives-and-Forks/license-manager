@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -17,7 +16,7 @@ namespace HGM.Hotbird64.Vlmcs
     public unsafe struct DigitalProductId2
     {
         private fixed char pid[24];
-        public string Pid { get { fixed (char* c = pid) return Marshal.PtrToStringUni((IntPtr)c); } }
+        public string Pid { get { fixed (char* c = pid) { return Marshal.PtrToStringUni((IntPtr)c); } } }
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 4)]
@@ -51,16 +50,19 @@ namespace HGM.Hotbird64.Vlmcs
         public uint CRC32;
 
         public static uint Size => (uint)sizeof(DigitalProductId3);
-        public ProtocolVersion Version => new ProtocolVersion { Major = (ushort)(version & 0xffff), Minor = (ushort)(version >> 16) };
-        public string Pid { get { fixed (byte* c = pid) return Marshal.PtrToStringAnsi((IntPtr)c); } }
-        public string EditionId { get { fixed (byte* c = editionId) return Marshal.PtrToStringAnsi((IntPtr)c); } }
-        public string OemId { get { fixed (byte* c = oemId) return Marshal.PtrToStringAnsi((IntPtr)c); } }
-        public byte[] HardwareIdStatic { get { fixed (byte* b = hardwareIdStatic) return PidGen.GetBytes(b, 16); } }
-        public byte[] HardwareIdDynamic { get { fixed (byte* b = hardwareIdDynamic) return PidGen.GetBytes(b, 16); } }
+        public ProtocolVersion Version => new() { Major = (ushort)(version & 0xffff), Minor = (ushort)(version >> 16) };
+        public string Pid { get { fixed (byte* c = pid) { return Marshal.PtrToStringAnsi((IntPtr)c); } } }
+        public string EditionId { get { fixed (byte* c = editionId) { return Marshal.PtrToStringAnsi((IntPtr)c); } } }
+        public string OemId { get { fixed (byte* c = oemId) { return Marshal.PtrToStringAnsi((IntPtr)c); } } }
+        public byte[] HardwareIdStatic { get { fixed (byte* b = hardwareIdStatic) { return PidGen.GetBytes(b, 16); } } }
+        public byte[] HardwareIdDynamic { get { fixed (byte* b = hardwareIdDynamic) { return PidGen.GetBytes(b, 16); } } }
 
         public static explicit operator DigitalProductId3(byte[] bytes)
         {
-            if (bytes.Length < sizeof(DigitalProductId3)) throw new ArgumentException($"Digital Product Id 3 must have {sizeof(DigitalProductId3)} bytes", nameof(bytes));
+            if (bytes.Length < sizeof(DigitalProductId3))
+            {
+                throw new ArgumentException($"Digital Product Id 3 must have {sizeof(DigitalProductId3)} bytes", nameof(bytes));
+            }
 
             fixed (byte* b = bytes)
             {
@@ -68,7 +70,10 @@ namespace HGM.Hotbird64.Vlmcs
             }
         }
 
-        public override string ToString() => BinaryKey.ToString();
+        public override string ToString()
+        {
+            return BinaryKey.ToString();
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -96,31 +101,40 @@ namespace HGM.Hotbird64.Vlmcs
         private fixed char eula[64];
 
         public static uint Size => (uint)sizeof(DigitalProductId4);
-        public string EPid { get { fixed (char* c = ePid) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public string OemId { get { fixed (char* c = oemId) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public string EditionType { get { fixed (char* c = editionType) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public string EditionId { get { fixed (char* c = editionId) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public string KeyType { get { fixed (char* c = keyType) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public string Eula { get { fixed (char* c = eula) return Marshal.PtrToStringUni((IntPtr)c); } }
-        public byte[] KeyHash { get { fixed (byte* b = keyHash) return PidGen.GetBytes(b, 32); } }
-        public byte[] Hash { get { fixed (byte* b = hash) return PidGen.GetBytes(b, 32); } }
-        public ProtocolVersion Version => new ProtocolVersion { Major = (ushort)(version & 0xffff), Minor = (ushort)(version >> 16) };
-        public override string ToString() => BinaryKey.ToString();
+        public string EPid { get { fixed (char* c = ePid) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public string OemId { get { fixed (char* c = oemId) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public string EditionType { get { fixed (char* c = editionType) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public string EditionId { get { fixed (char* c = editionId) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public string KeyType { get { fixed (char* c = keyType) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public string Eula { get { fixed (char* c = eula) { return Marshal.PtrToStringUni((IntPtr)c); } } }
+        public byte[] KeyHash { get { fixed (byte* b = keyHash) { return PidGen.GetBytes(b, 32); } } }
+        public byte[] Hash { get { fixed (byte* b = hash) { return PidGen.GetBytes(b, 32); } } }
+        public ProtocolVersion Version => new() { Major = (ushort)(version & 0xffff), Minor = (ushort)(version >> 16) };
+        public override string ToString()
+        {
+            return BinaryKey.ToString();
+        }
 
-        [SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
         public Guid SkuId
         {
             get
             {
                 string skuIdString;
-                fixed (char* c = skuId) skuIdString = Marshal.PtrToStringUni((IntPtr)c);
+                fixed (char* c = skuId)
+                {
+                    skuIdString = Marshal.PtrToStringUni((IntPtr)c);
+                }
+
                 return new Guid(skuIdString);
             }
         }
 
         public static explicit operator DigitalProductId4(byte[] bytes)
         {
-            if (bytes.Length < sizeof(DigitalProductId4)) throw new ArgumentException($"Digital Product Id 4 must have {sizeof(DigitalProductId4)} bytes", nameof(bytes));
+            if (bytes.Length < sizeof(DigitalProductId4))
+            {
+                throw new ArgumentException($"Digital Product Id 4 must have {sizeof(DigitalProductId4)} bytes", nameof(bytes));
+            }
 
             fixed (byte* b = bytes)
             {
@@ -129,16 +143,10 @@ namespace HGM.Hotbird64.Vlmcs
         }
     }
 
-    public class EPidQueryException : Exception
+    public class EPidQueryException(string message, int errorCode, string epid) : Exception(message)
     {
-        public int ErrorCode;
-        public string EPid;
-
-        public EPidQueryException(string message, int errorCode, string epid) : base(message)
-        {
-            ErrorCode = errorCode;
-            EPid = epid;
-        }
+        public int ErrorCode = errorCode;
+        public string EPid = epid;
     }
 
     public static class PidGen
@@ -146,10 +154,10 @@ namespace HGM.Hotbird64.Vlmcs
         public const string EpidPattern = @"^[0-9]{5}-[0-9]{5}-[0-9]{3}-[0-9]{6}-0[0123]-[0-9]{4,5}-[0-9]{4,5}\.0000-(36[0-6]|3[0-5][0-9]|[0-2][0-9]{2})20[0-9]{2}$";
 
         public static readonly byte[] MSActivationServerHmacKey =
-        {
+        [
             0xfe, 0x31, 0x98, 0x75, 0xfb, 0x48, 0x84, 0x86, 0x9c, 0xf3, 0xf1, 0xce, 0x99, 0xa8, 0x90, 0x64,
             0xab, 0x57, 0x1f, 0xca, 0x47, 0x04, 0x50, 0x58, 0x30, 0x24, 0xe2, 0x14, 0x62, 0x87, 0x79, 0xa0,
-        };
+        ];
 
         [DllImport("pidgenx.dll", CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = false)]
         private static extern uint PidGenX
@@ -175,15 +183,18 @@ namespace HGM.Hotbird64.Vlmcs
             return result;
         }
 
-        public static int GetRemainingActivationsOnline(DigitalProductId4 id4) => GetRemainingActivationsOnline(id4.EPid);
+        public static int GetRemainingActivationsOnline(DigitalProductId4 id4)
+        {
+            return GetRemainingActivationsOnline(id4.EPid);
+        }
 
         public static int GetRemainingActivationsOnline(string ePid)
         {
-            int GetNumber(string s)
+            static int GetNumber(string s)
             {
-                if (s == null) return 0;
-
-                return s.StartsWith("0x")
+                return s == null
+                    ? 0
+                    : s.StartsWith("0x")
                     ? unchecked((int)uint.Parse(s.Substring(2), NumberStyles.AllowHexSpecifier | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite, CultureInfo.InvariantCulture))
                     : int.Parse(s, NumberStyles.Any, CultureInfo.InvariantCulture);
             }
@@ -247,14 +258,17 @@ namespace HGM.Hotbird64.Vlmcs
                 throw new WebException($"Error while communicating with activation.sls.microsoft.com. Http status: {httpResponse.StatusCode} ({(int)httpResponse.StatusCode})", WebExceptionStatus.ProtocolError);
             }
 
-            XmlDocument soapResponseDocument = new XmlDocument();
+            XmlDocument soapResponseDocument = new();
 
             using (Stream soapResponse = httpResponse.GetResponseStream())
             {
-                if (soapResponse != null) soapResponseDocument.Load(soapResponse);
+                if (soapResponse != null)
+                {
+                    soapResponseDocument.Load(soapResponse);
+                }
             }
 
-            XmlDocument activationResponseDocument = new XmlDocument();
+            XmlDocument activationResponseDocument = new();
             activationResponseDocument.LoadXml(soapResponseDocument.LastChild.FirstChild.FirstChild.FirstChild.FirstChild.InnerText);
 
             string responseError = activationResponseDocument.SelectSingleNode("/*[local-name()='ActivationResponse']/*[local-name()='ErrorInfo']/*[local-name()='ErrorCode']")?.InnerText;
@@ -271,23 +285,15 @@ namespace HGM.Hotbird64.Vlmcs
             {
                 int errorCode = GetNumber(errorCodeText);
 
-                switch (errorCode)
+                throw errorCode switch
                 {
-                    case 0x67:
-                        throw new EPidQueryException("The EPID is blocked", errorCode, ePid);
-                    case 0x86:
-                        throw new EPidQueryException("This is not an EPID that has multiple online activations", errorCode, ePid);
-                    default:
-                        throw new EPidQueryException("Unknown error", errorCode, ePid);
-                }
+                    0x67 => new EPidQueryException("The EPID is blocked", errorCode, ePid),
+                    0x86 => new EPidQueryException("This is not an EPID that has multiple online activations", errorCode, ePid),
+                    _ => new EPidQueryException("Unknown error", errorCode, ePid),
+                };
             }
 
-            string responsePid = payLoadNode?.SelectSingleNode("//*[local-name()='PID']")?.InnerText;
-
-            if (responsePid == null)
-            {
-                throw new EPidQueryException("EPID is in an unknown format.", -1, ePid);
-            }
+            string responsePid = (payLoadNode?.SelectSingleNode("//*[local-name()='PID']")?.InnerText) ?? throw new EPidQueryException("EPID is in an unknown format.", -1, ePid);
 
             if (responsePid != ePid)
             {
@@ -296,37 +302,16 @@ namespace HGM.Hotbird64.Vlmcs
 
             string activationsRemainingText = payLoadNode.SelectSingleNode("//*[local-name()='ActivationRemaining']")?.InnerText;
 
-            if (activationsRemainingText == null)
-            {
-                throw new EPidQueryException("activation.sls.microsoft.com did not return the number of remaining activations.", -1, ePid);
-            }
-
-            return GetNumber(activationsRemainingText);
+            return activationsRemainingText == null
+                ? throw new EPidQueryException("activation.sls.microsoft.com did not return the number of remaining activations.", -1, ePid)
+                : GetNumber(activationsRemainingText);
         }
 
 
         public static void CheckKey(string key, string pkeyConfigFileName, out DigitalProductId2 id2, out DigitalProductId3 id3, out DigitalProductId4 id4)
         {
             int osBuild = Environment.OSVersion.Version.Build;
-            string ePidStart;
-
-            if (osBuild >= 10000)
-            {
-                ePidStart = "03612";
-            }
-            else if (osBuild >= 9600)
-            {
-                ePidStart = "06401";
-            }
-            else if (osBuild >= 9200)
-            {
-                ePidStart = "05426";
-            }
-            else
-            {
-                ePidStart = "55041";
-            }
-
+            string ePidStart = osBuild >= 10000 ? "03612" : osBuild >= 9600 ? "06401" : osBuild >= 9200 ? "05426" : "55041";
             id3 = new DigitalProductId3();
             id4 = new DigitalProductId4();
             id3.size = DigitalProductId3.Size;
@@ -337,14 +322,11 @@ namespace HGM.Hotbird64.Vlmcs
             if (hResult != 0)
             {
                 Win32Exception innerException = (hResult & 0xffff0000) == 0x80070000 ? new Win32Exception(unchecked((int)hResult)) : null;
-                switch (hResult)
+                throw hResult switch
                 {
-                    case 0x80070002:
-                        throw new FileNotFoundException("pkeyconfig database file not found", pkeyConfigFileName, innerException);
-
-                    default:
-                        throw new KmsException(Kms.StatusMessage(hResult), innerException);
-                }
+                    0x80070002 => new FileNotFoundException("pkeyconfig database file not found", pkeyConfigFileName, innerException),
+                    _ => new KmsException(Kms.StatusMessage(hResult), innerException),
+                };
             }
         }
     }

@@ -2,7 +2,6 @@
 using HGM.Hotbird64.Vlmcs;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -95,7 +94,6 @@ namespace HGM.Hotbird64.LicenseManager
 
         public static ulong Size => (uint)sizeof(VlmcsdHeader);
 
-        [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
         public MemoryStream WriteData(bool includeAppItems, bool includeKmsItems, bool includeSkuItems, bool noText, bool includeBetaSkuItem)
         {
             fixed (byte* m = Magic)
@@ -106,14 +104,14 @@ namespace HGM.Hotbird64.LicenseManager
                 m[3] = 0x00;
             }
 
-            IReadOnlyList<CsvlkItem> exportedCsvlks = KmsLists.CsvlkItemList.Where(c => c.VlmcsdIndex >= 0).OrderBy(c => c.VlmcsdIndex).ToArray() as IReadOnlyList<CsvlkItem>;
+            IReadOnlyList<CsvlkItem> exportedCsvlks = KmsLists.CsvlkItemList.Where(c => c.VlmcsdIndex >= 0).OrderBy(c => c.VlmcsdIndex).ToArray();
             CsvlkCount = (byte)exportedCsvlks.Count;
-            IReadOnlyList<WinBuild> exportedHostBuilds = KmsLists.KmsData.WinBuilds.Where(b => b.UseForEpid).OrderByDescending(b => b.BuildNumber).ToArray() as IReadOnlyList<WinBuild>;
+            IReadOnlyList<WinBuild> exportedHostBuilds = KmsLists.KmsData.WinBuilds.Where(b => b.UseForEpid).OrderByDescending(b => b.BuildNumber).ToArray();
             HostBuildCount = (uint)exportedHostBuilds.Count;
 
             try
             {
-                EPid ePid = new EPid(exportedCsvlks[0].EPid);
+                EPid ePid = new(exportedCsvlks[0].EPid);
                 Flags |= (byte)(ePid.OsBuild > 7601 ? VlmcsdOption.UseNdr64 : VlmcsdOption.None);
             }
             catch
@@ -130,16 +128,16 @@ namespace HGM.Hotbird64.LicenseManager
             Version = KmsLists.KmsData.Version.Full;
             AppItemOffset = Size + csvlkDataSize;
             AppItemCount = includeAppItems ? (uint)KmsLists.AppItemList.Count : 0;
-            KmsItemOffset = AppItemOffset + AppItemCount * VlmcsdData.Size;
+            KmsItemOffset = AppItemOffset + (AppItemCount * VlmcsdData.Size);
             KmsItemCount = (uint)kmsItemList.Length;
-            SkuItemOffset = KmsItemOffset + KmsItemCount * VlmcsdData.Size;
+            SkuItemOffset = KmsItemOffset + (KmsItemCount * VlmcsdData.Size);
             SkuItemCount = includeSkuItems && includeKmsItems ? (uint)skuItemList.Length : 0;
-            HostBuildOffset = SkuItemOffset + SkuItemCount * VlmcsdData.Size;
+            HostBuildOffset = SkuItemOffset + (SkuItemCount * VlmcsdData.Size);
 
             VlmcsdData[] idData = new VlmcsdData[AppItemCount + KmsItemCount + SkuItemCount];
             HostBuild[] hostBuilds = new HostBuild[HostBuildCount];
             VlmcsdDataText[] textData = new VlmcsdDataText[idData.Length];
-            ulong currentText = (ulong)idData.Length * VlmcsdData.Size + Size + csvlkDataSize + hostBuildSize;
+            ulong currentText = ((ulong)idData.Length * VlmcsdData.Size) + Size + csvlkDataSize + hostBuildSize;
             VlmcsdDataText[] ePids = new VlmcsdDataText[CsvlkCount];
             VlmcsdDataText[] iniFileNames = new VlmcsdDataText[CsvlkCount];
             VlmcsdDataText[] csvlkNames = new VlmcsdDataText[CsvlkCount];
@@ -170,7 +168,7 @@ namespace HGM.Hotbird64.LicenseManager
             }
 
             currentText = csvlkNames[CsvlkCount - 1].OffsetNext;
-            VlmcsdDataText unknownText = new VlmcsdDataText("Unknown", currentText);
+            VlmcsdDataText unknownText = new("Unknown", currentText);
 
             if (noText)
             {
@@ -261,9 +259,9 @@ namespace HGM.Hotbird64.LicenseManager
                 }
             }
 
-            MemoryStream stream = new MemoryStream();
+            MemoryStream stream = new();
             stream.SetLength((long)currentText);
-            stream.Seek(0, SeekOrigin.Begin);
+            _ = stream.Seek(0, SeekOrigin.Begin);
 
             fixed (VlmcsdHeader* b = &this)
             {

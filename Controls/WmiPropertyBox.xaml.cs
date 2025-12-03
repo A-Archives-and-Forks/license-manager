@@ -22,7 +22,7 @@ namespace HGM.Hotbird64.LicenseManager.Controls
 
         private static void OnIsReadOnlyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var self = (WmiPropertyBox)d;
+            WmiPropertyBox self = (WmiPropertyBox)d;
             self.Box.IsReadOnly = (bool)e.NewValue;
         }
 
@@ -66,11 +66,11 @@ namespace HGM.Hotbird64.LicenseManager.Controls
                     ContextMenu = null;
                 }
 
-                Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Cut });
-                Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Copy });
-                Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Undo });
-                Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Redo });
-                Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.SelectAll });
+                _ = Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Cut });
+                _ = Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Copy });
+                _ = Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Undo });
+                _ = Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.Redo });
+                _ = Box.ContextMenu.Items.Add(new MenuItem { Command = ApplicationCommands.SelectAll });
             };
         }
 

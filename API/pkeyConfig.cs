@@ -1,11 +1,9 @@
-﻿
-using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Collections.Generic;
+using System.Xml.Serialization;
+
 namespace HGM.Hotbird64.Vlmcs
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Xml.Serialization;
-
     public interface IPKeyConfigFile
     {
         string DisplayName { get; }
@@ -42,7 +40,7 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlIgnore]
         public KmsGuid ActConfigGuid
         {
-            get => new KmsGuid(ActConfigId);
+            get => new(ActConfigId);
             set => ActConfigId = value.ToString();
         }
 
@@ -60,20 +58,20 @@ namespace HGM.Hotbird64.Vlmcs
         {
             get
             {
-                if (ProductKeyType == null) return -1;
+                if (ProductKeyType == null)
+                {
+                    return -1;
+                }
+
                 string[] split = ProductKeyType.Split(':');
 
-                switch (split[0].ToUpperInvariant())
+                return split[0].ToUpperInvariant() switch
                 {
-                    case "VOLUME":
-                        return 3;
-                    case "RETAIL":
-                        return 0;
-                    case "OEM":
-                        return 2;
-                    default:
-                        return -1;
-                }
+                    "VOLUME" => 3,
+                    "RETAIL" => 0,
+                    "OEM" => 2,
+                    _ => -1,
+                };
             }
         }
 
@@ -95,7 +93,11 @@ namespace HGM.Hotbird64.Vlmcs
 
                 case "Volume:GVLK":
                     string kmsDataBaseName = KmsLists.SkuItemList[ActConfigGuid]?.DisplayName;
-                    if (kmsDataBaseName != null) return kmsDataBaseName;
+                    if (kmsDataBaseName != null)
+                    {
+                        return kmsDataBaseName;
+                    }
+
                     break;
             }
 
@@ -104,17 +106,18 @@ namespace HGM.Hotbird64.Vlmcs
 
         public bool Equals(ProductKeyConfigurationConfigurationsConfiguration other)
         {
-            if (other == null) return false;
-            return ActConfigGuid == other.ActConfigGuid;
+            return other != null && ActConfigGuid == other.ActConfigGuid;
         }
 
         public override bool Equals(object obj)
         {
-            if (!(obj is ProductKeyConfigurationConfigurationsConfiguration other)) return false;
-            return ActConfigGuid == other.ActConfigGuid;
+            return obj is ProductKeyConfigurationConfigurationsConfiguration other && ActConfigGuid == other.ActConfigGuid;
         }
 
-        public override int GetHashCode() => ActConfigGuid.GetHashCode();
+        public override int GetHashCode()
+        {
+            return ActConfigGuid.GetHashCode();
+        }
 
         public bool IsRandomized { get; set; }
 
@@ -139,7 +142,7 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlIgnore]
         public KmsGuid RefActConfigGuid
         {
-            get => new KmsGuid(RefActConfigId);
+            get => new(RefActConfigId);
             set => RefActConfigId = value.ToString();
         }
 
@@ -168,17 +171,15 @@ namespace HGM.Hotbird64.Vlmcs
 
         public override bool Equals(object obj)
         {
-            ProductKeyConfigurationKeyRangesKeyRange other = obj as ProductKeyConfigurationKeyRangesKeyRange;
-            if (other == null) return false;
-
-            return
-              Start == other.Start &&
+            return obj is ProductKeyConfigurationKeyRangesKeyRange other && Start == other.Start &&
               End == other.End &&
               RefActConfigGuid == other.RefActConfigGuid;
         }
 
-        [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
-        public override int GetHashCode() => Start ^ End;
+        public override int GetHashCode()
+        {
+            return Start ^ End;
+        }
     }
 
     [Serializable]
@@ -204,7 +205,10 @@ namespace HGM.Hotbird64.Vlmcs
         public string PublicKeyValue { get; set; }
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
-        public override int GetHashCode() => GroupId;
+        public override int GetHashCode()
+        {
+            return GroupId;
+        }
 
         public override bool Equals(object obj)
         {

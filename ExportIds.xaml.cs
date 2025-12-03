@@ -3,7 +3,6 @@ using HGM.Hotbird64.Vlmcs;
 using Microsoft.Win32;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -89,40 +88,37 @@ namespace HGM.Hotbird64.LicenseManager
             TextBoxOutput.AppendText(text + Environment.NewLine);
         }
 
-        [SuppressMessage("ReSharper", "PossibleInvalidOperationException")]
         private void ExportXml()
         {
-            using (MemoryStream stream = new MemoryStream())
+            using MemoryStream stream = new();
+            XmlWriterSettings settings = new()
             {
-                XmlWriterSettings settings = new XmlWriterSettings
-                {
-                    NewLineHandling = NewLineHandling.Replace,
-                    NewLineOnAttributes = CheckBoxMultiLine.IsChecked.Value,
-                    NewLineChars = "\r\n",
-                    Encoding = encoding,
-                    Indent = true,
-                    IndentChars = $"{tabs}",
-                };
+                NewLineHandling = NewLineHandling.Replace,
+                NewLineOnAttributes = CheckBoxMultiLine.IsChecked.Value,
+                NewLineChars = "\r\n",
+                Encoding = encoding,
+                Indent = true,
+                IndentChars = $"{tabs}",
+            };
 
-                XmlWriter writer = XmlWriter.Create(stream, settings);
-                XmlSerializer serializer = new XmlSerializer(typeof(KmsData));
+            XmlWriter writer = XmlWriter.Create(stream, settings);
+            XmlSerializer serializer = new(typeof(KmsData));
 
-                serializer.Serialize(writer, KmsLists.KmsData);
-                byte[] buffer = new byte[stream.Length];
-                stream.Seek(0, SeekOrigin.Begin);
-                stream.Read(buffer, 0, (int)stream.Length);
-                string text = encoding.GetString(buffer);
+            serializer.Serialize(writer, KmsLists.KmsData);
+            byte[] buffer = new byte[stream.Length];
+            _ = stream.Seek(0, SeekOrigin.Begin);
+            _ = stream.Read(buffer, 0, (int)stream.Length);
+            string text = encoding.GetString(buffer);
 
-                TextBoxOutput.Text = CheckBoxBlankLines.IsChecked.Value ?
-                  Regex.Replace(text, CheckBoxMultiLine.IsChecked.Value ? ".*>" : "<.*>", m =>
-                    !CheckBoxMultiLine.IsChecked.Value && (m.Value.StartsWith("<WinBuild") || m.Value.StartsWith("<SkuItem") || m.Value.StartsWith("<HostBuild") || m.Value.StartsWith("<KmsItem") || m.Value.StartsWith("<CsvlkItem") || m.Value.StartsWith("<Activate")) ? m.Value : m.Value.Replace(">", ">\r\n")) :
-                  text;
-            }
+            TextBoxOutput.Text = CheckBoxBlankLines.IsChecked.Value ?
+              Regex.Replace(text, CheckBoxMultiLine.IsChecked.Value ? ".*>" : "<.*>", m =>
+                !CheckBoxMultiLine.IsChecked.Value && (m.Value.StartsWith("<WinBuild") || m.Value.StartsWith("<SkuItem") || m.Value.StartsWith("<HostBuild") || m.Value.StartsWith("<KmsItem") || m.Value.StartsWith("<CsvlkItem") || m.Value.StartsWith("<Activate")) ? m.Value : m.Value.Replace(">", ">\r\n")) :
+              text;
         }
 
         private void ExportVlmcsd()
         {
-            VlmcsdHeader vlmcsdHeader = default(VlmcsdHeader);
+            VlmcsdHeader vlmcsdHeader = default;
 
 #if DEBUG
             Debug.Assert(CheckBoxIncludeApp.IsChecked != null, "CheckBoxIncludeApp.IsChecked != null");
@@ -171,7 +167,7 @@ namespace HGM.Hotbird64.LicenseManager
                     }
 
                     byte character = vlmcsdBytes[i + j];
-                    text += (character < 0x20 || (j == 15 && character == 0x5c)) || (character > 0x7e && character < 0xa1) ? '.' : (char)vlmcsdBytes[i + j];
+                    text += character < 0x20 || (j == 15 && character == 0x5c) || (character > 0x7e && character < 0xa1) ? '.' : (char)vlmcsdBytes[i + j];
                 }
 
                 TextBoxOutput.AppendText(text);
@@ -233,7 +229,6 @@ namespace HGM.Hotbird64.LicenseManager
             AddFooter();
         }
 
-        [SuppressMessage("ReSharper", "PossibleInvalidOperationException")]
         private void ExportSkuIds()
         {
             switch (ExportFormat)
@@ -348,7 +343,7 @@ namespace HGM.Hotbird64.LicenseManager
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog dialog = new SaveFileDialog()
+            SaveFileDialog dialog = new()
             {
                 CheckPathExists = true,
                 AddExtension = false,
@@ -356,23 +351,13 @@ namespace HGM.Hotbird64.LicenseManager
                 DereferenceLinks = true,
                 ValidateNames = true,
                 Title = (string)ButtonSaveAsAscii.Content,
+                Filter = ExportFormat switch
+                {
+                    ExportFormat.Xml => "XML Files (*.xml)|*.xml|All Files (*.*)|*",
+                    ExportFormat.Vlmcsd => "KMS Data Files (*.kmd)|*.kmd|All Files (*.*)|*",
+                    _ => "Text Files (*.txt)|*.txt|All Files (*.*)|*",
+                }
             };
-
-            switch (ExportFormat)
-            {
-                case ExportFormat.Xml:
-                    dialog.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*";
-                    break;
-
-                case ExportFormat.Vlmcsd:
-                    dialog.Filter = "KMS Data Files (*.kmd)|*.kmd|All Files (*.*)|*";
-                    break;
-
-                default:
-                    dialog.Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*";
-                    break;
-            }
-
             bool? result = dialog.ShowDialog(this);
             if (!result.Value)
             {
@@ -395,7 +380,7 @@ namespace HGM.Hotbird64.LicenseManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, $"Error Writing File \"{dialog.SafeFileName}\"", MessageBoxButton.OK, MessageBoxImage.Error);
+                _ = MessageBox.Show(ex.Message, $"Error Writing File \"{dialog.SafeFileName}\"", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -503,7 +488,6 @@ namespace HGM.Hotbird64.LicenseManager
             }
         }
 
-        [SuppressMessage("ReSharper", "PossibleInvalidOperationException")]
         private void CheckBox_UseTabs_Click(object sender, RoutedEventArgs e)
         {
             tabs = CheckBoxUseTabs.IsChecked.Value ? "\t" : "    ";

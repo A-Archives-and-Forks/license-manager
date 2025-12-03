@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -25,9 +24,7 @@ namespace HGM.Hotbird64.LicenseManager
         public static readonly Brush DefaultTextBoxBackground = new SolidColorBrush(Color.FromRgb(0xf0, 0xf0, 0xf0));
         public const double ZoomFactor = 1.025;
         public static bool HaveLibKms, IsLibKmsLoadError;
-        [SuppressMessage("ReSharper", "AssignNullToNotNullAttribute")]
         public static string DatabaseFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "KmsDataBase.xml");
-        //public static readonly IDictionary<KmsGuid, CsvlkRule> CsvlkRules = new Dictionary<KmsGuid, CsvlkRule>(40);
         public const string GuidPattern = @"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})|(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\})$";
         public static readonly IReadOnlyList<KmsGuid> ServerKmsGuids;
         public static event Action DataBaseLoaded;
@@ -44,19 +41,20 @@ namespace HGM.Hotbird64.LicenseManager
 
         static App()
         {
-            // TODO: Get rid of this
-            KmsGuid win2008A = new("33e156e4-b76f-4a52-9f91-f641dd95ac48");
-            KmsGuid win2008B = new("8fe53387-3087-4447-8985-f75132215ac9");
-            KmsGuid win2008C = new("8a21fdf3-cbc5-44eb-83f3-fe284e6680a7");
-            KmsGuid win2008R2A = new("0fc6ccaf-ff0e-4fae-9d08-4370785bf7ed");
-            KmsGuid win2008R2B = new("ca87f5b6-cd46-40c0-b06d-8ecd57a4373f");
-            KmsGuid win2008R2C = new("b2ca2689-a9a8-42d7-938d-cf8e9f201958");
-            KmsGuid win2012 = new("8665cb71-468c-4aa3-a337-cb9bc9d5eaac");
-            KmsGuid win2012R2 = new("8456efd3-0c04-4089-8740-5b7238535a65");
-            KmsGuid win2016 = new("6e9fc069-257d-4bc4-b4a7-750514d32743");
-            KmsGuid win2019 = new("8449b1fb-f0ea-497a-99ab-66ca96e9a0f5");
-            KmsGuid win2022 = new("b74263e4-0f92-46c6-bcf8-c11d5efe2959");
-            ServerKmsGuids = [win2008A, win2008B, win2008C, win2008R2A, win2008R2B, win2008R2C, win2012, win2012R2, win2016, win2019, win2022];
+            ServerKmsGuids = [
+                new("33e156e4-b76f-4a52-9f91-f641dd95ac48"), //Windows Server 2008 A
+                new("8fe53387-3087-4447-8985-f75132215ac9"), //Windows Server 2008 B
+                new("8a21fdf3-cbc5-44eb-83f3-fe284e6680a7"), //Windows Server 2008 C
+                new("0fc6ccaf-ff0e-4fae-9d08-4370785bf7ed"), //Windows Server 2008 R2 A
+                new("ca87f5b6-cd46-40c0-b06d-8ecd57a4373f"), //Windows Server 2008 R2 B
+                new("b2ca2689-a9a8-42d7-938d-cf8e9f201958"), //Windows Server 2008 R2 C
+                new("8665cb71-468c-4aa3-a337-cb9bc9d5eaac"), //Windows Server 2012
+                new("8456efd3-0c04-4089-8740-5b7238535a65"), //Windows Server 2012 R2
+                new("6e9fc069-257d-4bc4-b4a7-750514d32743"), //Windows Server 2016
+                new("8449b1fb-f0ea-497a-99ab-66ca96e9a0f5"), //Windows Server 2019
+                new("b74263e4-0f92-46c6-bcf8-c11d5efe2959"), //Windows Server 2022
+                new("907f1f65-adcd-4a2e-95bc-4bf500bc6e58")  //Windows Server 2025
+            ];
         }
 
         private static bool TryLoadLibrary(string dllFileName)
@@ -173,7 +171,7 @@ namespace HGM.Hotbird64.LicenseManager
 
                 try
                 {
-                    using FileStream stream = new FileStream(DatabaseFileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    using FileStream stream = new(DatabaseFileName, FileMode.Open, FileAccess.Read, FileShare.Read);
                     KmsLists.ReadDatabase(stream);
                     IsDatabaseLoaded = true;
                     DataBaseLoaded?.Invoke();

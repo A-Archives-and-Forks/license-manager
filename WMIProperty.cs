@@ -1,7 +1,6 @@
 ﻿using HGM.Hotbird64.Vlmcs;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Management;
@@ -17,20 +16,20 @@ namespace HGM.Hotbird64.LicenseManager
         public string Servicename;
         public ManagementObject ManagementObject;
         public object Value { private set; get; }
-        private string property;
+
         private readonly bool showAllFields;
 
         public string Property
         {
-            get => property;
+            get;
 
             set
             {
-                property = value;
+                field = value;
 
                 try
                 {
-                    Value = ManagementObject[property] ?? "";
+                    Value = ManagementObject[field] ?? "";
                 }
                 catch (ManagementException ex)
                 {
@@ -163,7 +162,6 @@ namespace HGM.Hotbird64.LicenseManager
             Hide(control, textbox, showAllFields);
         }
 
-        [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
         public void DisplayPropertyAsPeriodRemaining(IEnumerable<Control> controls, TextBox textbox, string p)
         {
             Property = p;
@@ -177,18 +175,18 @@ namespace HGM.Hotbird64.LicenseManager
 
             Show(controls, textbox);
 
-            double minutesRemaining = (double)(uint)Value;
+            double minutesRemaining = (uint)Value;
             DateTime tempDate = DateTime.Now.AddMinutes((uint)Value);
             textbox.Text = (minutesRemaining == 0.0)
-                    ? ("forever (unless you install a new key or tamper with the license tokens)")
-                    : (Math.Round(minutesRemaining / 24.0 / 60.0).ToString(CultureInfo.CurrentCulture)) + " days, until " +
+                    ? "forever (unless you install a new key or tamper with the license tokens)"
+                    : Math.Round(minutesRemaining / 24.0 / 60.0).ToString(CultureInfo.CurrentCulture) + " days, until " +
                     tempDate.ToLongDateString() + " " + tempDate.ToShortTimeString();
         }
 
         public void DisplayPropertyAsLicenseStatus(IEnumerable<Control> controls, TextBox textBox)
         {
             Property = "LicenseStatus";
-            if (!(Value is uint))
+            if (Value is not uint)
             {
                 Hide(controls, textBox);
                 textBox.Text = "N/A";
@@ -198,20 +196,12 @@ namespace HGM.Hotbird64.LicenseManager
                 uint licenseStatus = (uint)Value;
                 string licenseStatusString = Model.LicenseStatus.GetText(licenseStatus);
 
-                switch (licenseStatus)
+                textBox.Background = licenseStatus switch
                 {
-                    case 0:
-                    case 5:
-                        textBox.Background = Brushes.OrangeRed;
-                        break;
-                    case 1:
-                        textBox.Background = Brushes.LightGreen;
-                        break;
-                    default:
-                        textBox.Background = Brushes.Yellow;
-                        break;
-                }
-
+                    0 or 5 => Brushes.OrangeRed,
+                    1 => Brushes.LightGreen,
+                    _ => Brushes.Yellow,
+                };
                 Property = "LicenseStatusReason";
 
                 if (Value != null)
@@ -306,7 +296,7 @@ namespace HGM.Hotbird64.LicenseManager
                 return;
             }
 
-            EPid pid = new EPid(Value);
+            EPid pid = new(Value);
             pidBox.Text = pid.Id;
             Show(pidControl, pidBox);
 
@@ -336,7 +326,7 @@ namespace HGM.Hotbird64.LicenseManager
         public void SetCheckBox(CheckBox checkBox, string p)
         {
             Property = p;
-            checkBox.IsChecked = (Value == null ? null : (bool?)((uint)Value == 0));
+            checkBox.IsChecked = Value == null ? null : (uint)Value == 0;
         }
     }
 }

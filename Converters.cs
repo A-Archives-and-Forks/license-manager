@@ -11,7 +11,10 @@ namespace HGM.Hotbird64.LicenseManager
 {
     public abstract class ConverterBase : MarkupExtension, IValueConverter
     {
-        public override object ProvideValue(IServiceProvider serviceProvider) => this;
+        public override object ProvideValue(IServiceProvider serviceProvider)
+        {
+            return this;
+        }
 
         public abstract object Convert(object value, Type targetType, object parameter, CultureInfo culture);
 
@@ -29,12 +32,7 @@ namespace HGM.Hotbird64.LicenseManager
 
         public override object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is bool boolValue)
-            {
-                return boolValue ? True : False;
-            }
-
-            return Null;
+            return value is bool boolValue ? boolValue ? True : False : Null;
         }
     }
 
@@ -54,12 +52,7 @@ namespace HGM.Hotbird64.LicenseManager
         {
             string stringValue = value?.ToString();
 
-            if (stringValue != null && Regex.IsMatch(stringValue, PidGen.EpidPattern))
-            {
-                return Visibility.Visible;
-            }
-
-            return Visibility.Collapsed;
+            return stringValue != null && Regex.IsMatch(stringValue, PidGen.EpidPattern) ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

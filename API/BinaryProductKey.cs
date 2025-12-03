@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -10,8 +9,6 @@ using System.Text.RegularExpressions;
 namespace HGM.Hotbird64.Vlmcs
 {
     [StructLayout(LayoutKind.Explicit)]
-    [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")]
-    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public struct BinaryProductKey : IComparable
     {
         [FieldOffset(0)]
@@ -30,7 +27,7 @@ namespace HGM.Hotbird64.Vlmcs
         public const string Base24 = "BCDFGHJKMPQRTVWXY2346789";
         public const string KeyPattern = @"(?!^.*N.*N.*$)([BCDFGHJKMPQRTVWXY2-9N]{5}\-){4}[BCDFGHJKMPQRTVWXY2-9N]{4}[BCDFGHJKMPQRTVWXY2-9]";
 
-        public static readonly uint[] Crc32Table = {
+        public static readonly uint[] Crc32Table = [
             0x00000000,0x04c11db7,0x09823b6e,0x0d4326d9,0x130476dc,0x17c56b6b,0x1a864db2,0x1e475005,
             0x2608edb8,0x22c9f00f,0x2f8ad6d6,0x2b4bcb61,0x350c9b64,0x31cd86d3,0x3c8ea00a,0x384fbdbd,
             0x4c11db70,0x48d0c6c7,0x4593e01e,0x4152fda9,0x5f15adac,0x5bd4b01b,0x569796c2,0x52568b75,
@@ -63,7 +60,7 @@ namespace HGM.Hotbird64.Vlmcs
             0xe3a1cbc1,0xe760d676,0xea23f0af,0xeee2ed18,0xf0a5bd1d,0xf464a0aa,0xf9278673,0xfde69bc4,
             0x89b8fd09,0x8d79e0be,0x803ac667,0x84fbdbd0,0x9abc8bd5,0x9e7d9662,0x933eb0bb,0x97ffad0c,
             0xafb010b1,0xab710d06,0xa6322bdf,0xa2f33668,0xbcb4666d,0xb8757bda,0xb5365d03,0xb1f740b4
-        };
+        ];
 
         public BinaryProductKey(uint group, uint id, ulong unknownSecret)
         {
@@ -74,8 +71,15 @@ namespace HGM.Hotbird64.Vlmcs
             UnknownSecret = unknownSecret;
         }
 
-        public BinaryProductKey(string key) => this = (BinaryProductKey)key;
-        public BinaryProductKey(byte[] keyBytes) => this = (BinaryProductKey)keyBytes;
+        public BinaryProductKey(string key)
+        {
+            this = (BinaryProductKey)key;
+        }
+
+        public BinaryProductKey(byte[] keyBytes)
+        {
+            this = (BinaryProductKey)keyBytes;
+        }
 
         public BinaryProductKey(ulong high, ulong low)
         {
@@ -83,17 +87,24 @@ namespace HGM.Hotbird64.Vlmcs
             Uint64Low = low;
         }
 
-        private void ThrowOnOldKey() => ThrowOnOldKey(ref this);
-        private static void ThrowOnOldKey(ref BinaryProductKey key)
+        private void ThrowOnOldKey()
         {
-            if (!key.IsNewKey) throw new NotSupportedException("Operation only supported for new keys containing an 'N'");
+            ThrowOnOldKey(ref this);
         }
 
-        public bool IsNullKey => (Uint64High | Uint64Low) == 0;
+        private static void ThrowOnOldKey(ref BinaryProductKey key)
+        {
+            if (!key.IsNewKey)
+            {
+                throw new NotSupportedException("Operation only supported for new keys containing an 'N'");
+            }
+        }
+
+        public readonly bool IsNullKey => (Uint64High | Uint64Low) == 0;
 
         public bool IsNewKey
         {
-            get => (Uint64High & 0x8000000000000) != 0;
+            readonly get => (Uint64High & 0x8000000000000) != 0;
             set
             {
                 if (value && !IsNewKey)
@@ -113,8 +124,12 @@ namespace HGM.Hotbird64.Vlmcs
             set
             {
                 ThrowOnOldKey();
-                if (value > 0x3fffffff) throw new ArgumentOutOfRangeException(nameof(Id), $"Key Id must be 0 - {0x3fffffff}");
-                Uint64Low = (UnknownSecret & 0x3fff) << 50 | (ulong)value << 20 | Group;
+                if (value > 0x3fffffff)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Id), $"Key Id must be 0 - {0x3fffffff}");
+                }
+
+                Uint64Low = ((UnknownSecret & 0x3fff) << 50) | ((ulong)value << 20) | Group;
                 Uint64High = (UnknownSecret >> 14) | (IsNewKey ? 0x8000000000000UL : 0UL);
                 Uint64High |= (ulong)Crc32(this) << 39;
             }
@@ -148,10 +163,14 @@ namespace HGM.Hotbird64.Vlmcs
             set
             {
                 ThrowOnOldKey();
-                if (value > 0x1fffffffffffff) throw new ArgumentOutOfRangeException(nameof(UnknownSecret), $"Key secret must be 0 - {0x1fffffffffffff}");
+                if (value > 0x1fffffffffffff)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(UnknownSecret), $"Key secret must be 0 - {0x1fffffffffffff}");
+                }
+
                 Uint64Low = ((value & 0x3fff) << 50) | ((ulong)Id << 20) | Group;
                 Uint64High = (value >> 14) | (IsNewKey ? 0x8000000000000UL : 0UL);
-                Uint64High |= ((ulong)Crc32(this) << 39);
+                Uint64High |= (ulong)Crc32(this) << 39;
             }
         }
 
@@ -161,10 +180,14 @@ namespace HGM.Hotbird64.Vlmcs
             set
             {
                 ThrowOnOldKey();
-                if (value > 0xfffff) throw new ArgumentOutOfRangeException(nameof(Group), $"Key group must be 0 - {0xfffff}");
-                Uint64Low = (UnknownSecret & 0x3fff) << 50 | (ulong)Id << 20 | value;
+                if (value > 0xfffff)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Group), $"Key group must be 0 - {0xfffff}");
+                }
+
+                Uint64Low = ((UnknownSecret & 0x3fff) << 50) | ((ulong)Id << 20) | value;
                 Uint64High = (UnknownSecret >> 14) | (IsNewKey ? 0x8000000000000UL : 0UL);
-                Uint64High |= ((ulong)Crc32(this) << 39);
+                Uint64High |= (ulong)Crc32(this) << 39;
             }
         }
 
@@ -193,12 +216,23 @@ namespace HGM.Hotbird64.Vlmcs
             return result;
         }
 
-        public static explicit operator List<byte>(BinaryProductKey binaryKey) => [.. ((byte[])binaryKey)];
-        public static explicit operator BinaryProductKey(List<byte> bytes) => new([.. bytes]);
+        public static explicit operator List<byte>(BinaryProductKey binaryKey)
+        {
+            return [.. (byte[])binaryKey];
+        }
+
+        public static explicit operator BinaryProductKey(List<byte> bytes)
+        {
+            return new([.. bytes]);
+        }
 
         public static unsafe explicit operator BinaryProductKey(byte[] bytes)
         {
-            if (bytes.Length != 16) throw new ArgumentException("Binary Product Keys are 16 bytes long");
+            if (bytes.Length != 16)
+            {
+                throw new ArgumentException("Binary Product Keys are 16 bytes long");
+            }
+
             BinaryProductKey binaryKey;
 
             fixed (byte* pByte = bytes) { binaryKey = *(BinaryProductKey*)pByte; }
@@ -207,7 +241,11 @@ namespace HGM.Hotbird64.Vlmcs
 
         public static unsafe explicit operator BinaryProductKey(uint[] dWords)
         {
-            if (dWords.Length != 4) throw new ArgumentException("Binary Product Keys are 16 bytes (4 uints) long");
+            if (dWords.Length != 4)
+            {
+                throw new ArgumentException("Binary Product Keys are 16 bytes (4 uints) long");
+            }
+
             BinaryProductKey binaryKey;
 
             fixed (uint* pDWord = dWords) { binaryKey = *(BinaryProductKey*)pDWord; }
@@ -230,7 +268,10 @@ namespace HGM.Hotbird64.Vlmcs
 
         public static unsafe explicit operator string(BinaryProductKey binaryKey)
         {
-            if ((binaryKey.Uint64Low | binaryKey.Uint64High) == 0) return "(none)";
+            if ((binaryKey.Uint64Low | binaryKey.Uint64High) == 0)
+            {
+                return "(none)";
+            }
 
             byte[] binaryCodedBase24Key = new byte[25];
             StringBuilder keyBuilder = new(32);
@@ -256,11 +297,18 @@ namespace HGM.Hotbird64.Vlmcs
 
             for (byte i = (byte)(isNewKey ? 1 : 0); i < 25; i++)
             {
-                if (isNewKey && i - 1 == binaryCodedBase24Key[0]) keyBuilder.Append('N');
-                keyBuilder.Append(Base24[binaryCodedBase24Key[i]]);
+                if (isNewKey && i - 1 == binaryCodedBase24Key[0])
+                {
+                    _ = keyBuilder.Append('N');
+                }
+
+                _ = keyBuilder.Append(Base24[binaryCodedBase24Key[i]]);
             }
 
-            for (byte i = 5; i < 24; i += 6) keyBuilder.Insert(i, "-", 1);
+            for (byte i = 5; i < 24; i += 6)
+            {
+                _ = keyBuilder.Insert(i, "-", 1);
+            }
 
             return keyBuilder.ToString();
         }
@@ -272,14 +320,20 @@ namespace HGM.Hotbird64.Vlmcs
             key = key.ToUpperInvariant();
             bool isNewKey = key.Contains('N');
 
-            if (key == null) throw new ArgumentNullException(nameof(key), "The key must not be null");
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key), "The key must not be null");
+            }
 
             if (!Regex.IsMatch(key, KeyPattern))
             {
                 throw new ArgumentException($"\"{key}\" is not a valid product key", nameof(key));
             }
 
-            while ((i = key.IndexOf('-')) >= 0) key = key.Remove(i, 1);
+            while ((i = key.IndexOf('-')) >= 0)
+            {
+                key = key.Remove(i, 1);
+            }
 
             BinaryProductKey binaryKey = new();
 
@@ -307,38 +361,63 @@ namespace HGM.Hotbird64.Vlmcs
 
             binaryKey.IsNewKey = isNewKey;
 
-            if (isNewKey && binaryKey.StoredCrc32 != Crc32(binaryKey))
-            {
-                throw new ArgumentException($"CRC-32 of key \"{originalKey}\" is not valid", nameof(key));
-            }
-
-            return binaryKey;
+            return isNewKey && binaryKey.StoredCrc32 != Crc32(binaryKey)
+                ? throw new ArgumentException($"CRC-32 of key \"{originalKey}\" is not valid", nameof(key))
+                : binaryKey;
         }
 
-        public override string ToString() => (string)this;
-        public byte[] ToArray() => (byte[])this;
-        public List<byte> ToList() => (List<byte>)this;
-        public int CompareTo(object obj) => string.Compare(ToString(), obj.ToString(), StringComparison.OrdinalIgnoreCase);
+        public override string ToString()
+        {
+            return (string)this;
+        }
+
+        public byte[] ToArray()
+        {
+            return (byte[])this;
+        }
+
+        public List<byte> ToList()
+        {
+            return (List<byte>)this;
+        }
+
+        public int CompareTo(object obj)
+        {
+            return string.Compare(ToString(), obj.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
 
         public override readonly bool Equals(object obj)
         {
-            if (obj is string s) return (string)this == s.ToUpperInvariant();
-            if (obj is BinaryProductKey other) return Uint64High == other.Uint64High && Uint64Low == other.Uint64Low;
+            if (obj is string s)
+            {
+                return (string)this == s.ToUpperInvariant();
+            }
+
+            if (obj is BinaryProductKey other)
+            {
+                return Uint64High == other.Uint64High && Uint64Low == other.Uint64Low;
+            }
 
             if (obj is IEnumerable<byte> bytes)
             {
-                byte[] byteArray = bytes as byte[] ?? bytes.ToArray();
+                byte[] byteArray = bytes as byte[] ?? [.. bytes];
                 return byteArray.Length == 16 && ((BinaryProductKey)byteArray).Equals(this);
             }
 
             return false;
         }
 
-        public override unsafe int GetHashCode() => unchecked((int)u32[2]);
+        public override unsafe int GetHashCode()
+        {
+            return unchecked((int)u32[2]);
+        }
 
-        public string GetEpid(int msKeyType = -1) => GetEpid(this, msKeyType);
+        public readonly string GetEpid(int msKeyType = -1)
+        {
+            return GetEpid(this, msKeyType);
+        }
 
-        public string EPid => GetEpid();
+        public readonly string EPid => GetEpid();
 
         public static string GetEpid(BinaryProductKey binaryKey, int msKeyType = -1)
         {
@@ -364,17 +443,54 @@ namespace HGM.Hotbird64.Vlmcs
             return GetEpid((BinaryProductKey)key, msKeyType);
         }
 
-        public static bool operator ==(BinaryProductKey first, BinaryProductKey second) => !(first != second);
-        public static bool operator !=(BinaryProductKey first, BinaryProductKey second) => first.GetHashCode() != second.GetHashCode() || !first.Equals(second);
-        [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
-        public static bool operator ==(BinaryProductKey first, string second) => first.Equals(second);
-        public static bool operator !=(BinaryProductKey first, string second) => !(first == second);
-        public static bool operator ==(string first, BinaryProductKey second) => second == first;
-        public static bool operator !=(string first, BinaryProductKey second) => !(second == first);
-        [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
-        public static bool operator ==(BinaryProductKey first, IEnumerable<byte> second) => first.Equals(second);
-        public static bool operator !=(BinaryProductKey first, IEnumerable<byte> second) => !(first == second);
-        public static bool operator ==(IEnumerable<byte> first, BinaryProductKey second) => second == first;
-        public static bool operator !=(IEnumerable<byte> first, BinaryProductKey second) => second != first;
+        public static bool operator ==(BinaryProductKey first, BinaryProductKey second)
+        {
+            return !(first != second);
+        }
+
+        public static bool operator !=(BinaryProductKey first, BinaryProductKey second)
+        {
+            return first.GetHashCode() != second.GetHashCode() || !first.Equals(second);
+        }
+
+        public static bool operator ==(BinaryProductKey first, string second)
+        {
+            return first.Equals(second);
+        }
+
+        public static bool operator !=(BinaryProductKey first, string second)
+        {
+            return !(first == second);
+        }
+
+        public static bool operator ==(string first, BinaryProductKey second)
+        {
+            return second == first;
+        }
+
+        public static bool operator !=(string first, BinaryProductKey second)
+        {
+            return !(second == first);
+        }
+
+        public static bool operator ==(BinaryProductKey first, IEnumerable<byte> second)
+        {
+            return first.Equals(second);
+        }
+
+        public static bool operator !=(BinaryProductKey first, IEnumerable<byte> second)
+        {
+            return !(first == second);
+        }
+
+        public static bool operator ==(IEnumerable<byte> first, BinaryProductKey second)
+        {
+            return second == first;
+        }
+
+        public static bool operator !=(IEnumerable<byte> first, BinaryProductKey second)
+        {
+            return second != first;
+        }
     }
 }

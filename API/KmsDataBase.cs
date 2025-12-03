@@ -2,31 +2,30 @@
 using HGM.Hotbird64.LicenseManager.Contracts;
 using HGM.Hotbird64.LicenseManager.Extensions;
 using LicenseManager.Annotations;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 // ReSharper disable PartialTypeWithSinglePart
 
 // ReSharper disable once CheckNamespace
 namespace HGM.Hotbird64.Vlmcs
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using System.Threading;
-    using System.Xml;
-    using System.Xml.Schema;
-    using System.Xml.Serialization;
-
     [XmlType(AnonymousType = true)]
     [XmlRoot(Namespace = "", IsNullable = false)]
     public partial class KmsData
     {
-        public static ReaderWriterLock Lock = new ReaderWriterLock();
+        public static ReaderWriterLock Lock = new();
 
         [XmlArray("WinBuilds", Form = XmlSchemaForm.Unqualified), XmlArrayItem("WinBuild", Form = XmlSchemaForm.Unqualified)]
         public List<WinBuild> WinBuilds { get; set; }
@@ -65,72 +64,67 @@ namespace HGM.Hotbird64.Vlmcs
     [XmlType(AnonymousType = true)]
     public class WinBuild : PropertyChangeBase
     {
-        private int buildNumber, platformId;
-        private string displayName;
-        private bool mayBeServer, useForEpid, usesNDR64;
-        private DateTime releaseDate;
-
         [XmlAttribute]
         public int BuildNumber
         {
-            get => buildNumber;
-            set => this.SetProperty(ref buildNumber, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         public DateTime ReleaseDate
         {
-            get => releaseDate;
-            set => this.SetProperty(ref releaseDate, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         public string DisplayName
         {
-            get => displayName;
-            set => this.SetProperty(ref displayName, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         public int PlatformId
         {
-            get => platformId;
-            set => this.SetProperty(ref platformId, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         [DefaultValue(false)]
         public bool MayBeServer
         {
-            get => mayBeServer;
-            set => this.SetProperty(ref mayBeServer, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         [DefaultValue(false)]
         public bool UseForEpid
         {
-            get => useForEpid;
-            set => this.SetProperty(ref useForEpid, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlAttribute]
         [DefaultValue(false)]
         public bool UsesNDR64
         {
-            get => usesNDR64;
-            set => this.SetProperty(ref usesNDR64, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
-        public override string ToString() => DisplayName;
+        public override string ToString()
+        {
+            return DisplayName;
+        }
     }
 
     [XmlType(AnonymousType = true)]
     public class CsvlkItem : KmsProduct, IHaveNotifyOfPropertyChange
     {
-        private bool isRandom;
-        private string ePid;
-
         [XmlAttribute, DefaultValue(false)] public bool IsLab { get; set; }
         [XmlAttribute, DefaultValue((sbyte)-1)] public int VlmcsdIndex { get; set; } = -1;
         [XmlAttribute, DefaultValue(false)] public bool IsPreview { get; set; }
@@ -144,15 +138,15 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlAttribute]
         public string EPid
         {
-            get => ePid;
-            set => this.SetProperty(ref ePid, value, postAction: () => NotifyOfPropertyChange(nameof(IsValidEpid)));
+            get;
+            set => this.SetProperty(ref field, value, postAction: () => NotifyOfPropertyChange(nameof(IsValidEpid)));
         }
 
         [XmlIgnore]
         public bool IsRandom
         {
-            get => isRandom;
-            set => this.SetProperty(ref isRandom, value);
+            get;
+            set => this.SetProperty(ref field, value);
         }
 
         [XmlIgnore]
@@ -189,15 +183,16 @@ namespace HGM.Hotbird64.Vlmcs
 
         [XmlIgnore] public KmsGuid Guid { get; set; }
 
-        public override string ToString() => KmsLists.KmsItemList[Guid].DisplayName;
+        public override string ToString()
+        {
+            return KmsLists.KmsItemList[Guid].DisplayName;
+        }
     }
 
 
     [XmlType(AnonymousType = true)]
     public partial class AppItem : KmsProduct, INotifyPropertyChanged
     {
-        private int maxActiveClients = 50, minActiveClients = 50;
-
         [XmlElement("KmsItem", Form = XmlSchemaForm.Unqualified)] public KmsProductCollection<KmsItem> KmsItems { get; set; }
         [XmlAttribute] public sbyte VlmcsdIndex { get; set; }
 
@@ -210,13 +205,13 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlAttribute, DefaultValue(50)]
         public int MinActiveClients
         {
-            get => minActiveClients;
+            get;
             set
             {
-                minActiveClients = MaxActiveClients = value;
+                field = MaxActiveClients = value;
                 NotifyOfPropertyChange();
             }
-        }
+        } = 50;
 
         [XmlIgnore]
         public ConcurrentQueue<KmsGuid> Queue { get; } = new ConcurrentQueue<KmsGuid>();
@@ -224,27 +219,27 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlIgnore]
         public int MaxActiveClients
         {
-            get => maxActiveClients;
+            get;
             set
             {
-                maxActiveClients = value;
+                field = value;
                 NotifyOfPropertyChange();
                 NotifyOfPropertyChange(nameof(ClientStatus));
                 NotifyOfPropertyChange(nameof(IsValidClientStatus));
             }
-        }
+        } = 50;
 
         [XmlIgnore]
         public string ClientStatus => $"{Queue.Count} / {MaxActiveClients}";
         [XmlIgnore]
         public bool? IsValidClientStatus
-            => (MaxActiveClients > MinActiveClients || Queue.Count == 0) && Queue.Count < 671 ? (bool?)null : Queue.Count >= MinActiveClients >> 1 && Queue.Count < 671;
+            => (MaxActiveClients > MinActiveClients || Queue.Count == 0) && Queue.Count < 671 ? null : Queue.Count >= MinActiveClients >> 1 && Queue.Count < 671;
 
         public void Reset()
         {
             while (!Queue.IsEmpty)
             {
-                Queue.TryDequeue(out _);
+                _ = Queue.TryDequeue(out _);
             }
 
             MaxActiveClients = MinActiveClients;
@@ -262,7 +257,7 @@ namespace HGM.Hotbird64.Vlmcs
 
             if (Queue.Count > MaxActiveClients)
             {
-                Queue.TryDequeue(out _);
+                _ = Queue.TryDequeue(out _);
             }
 
             NotifyOfPropertyChange(nameof(Queue));
@@ -381,7 +376,10 @@ namespace HGM.Hotbird64.Vlmcs
     public abstract class KmsProduct : GuidItem
     {
         [XmlAttribute, DefaultValue(null)] public string DisplayName { get; set; }
-        public override string ToString() => DisplayName;
+        public override string ToString()
+        {
+            return DisplayName;
+        }
     }
 
     public abstract class GuidItem : IEquatable<KmsGuid>, IEquatable<Guid>
@@ -389,7 +387,10 @@ namespace HGM.Hotbird64.Vlmcs
         [XmlIgnore] public virtual KmsGuid Guid { get; set; }
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
-        public override int GetHashCode() => Guid.GetHashCode();
+        public override int GetHashCode()
+        {
+            return Guid.GetHashCode();
+        }
 
         public override bool Equals(object obj)
         {
@@ -414,19 +415,65 @@ namespace HGM.Hotbird64.Vlmcs
             return Guid == other;
         }
 
-        public bool Equals(KmsGuid other) => Guid == other;
-        public bool Equals(Guid other) => this == other;
+        public bool Equals(KmsGuid other)
+        {
+            return Guid == other;
+        }
 
-        public static bool operator ==(GuidItem a, GuidItem b) => a?.Equals(b) ?? b is null;
-        public static bool operator !=(GuidItem a, GuidItem b) => !(a == b);
-        public static bool operator ==(GuidItem a, KmsGuid b) => !(a is null) && a.Equals(b);
-        public static bool operator !=(GuidItem a, KmsGuid b) => !(a == b);
-        public static bool operator ==(KmsGuid a, GuidItem b) => b == a;
-        public static bool operator !=(KmsGuid a, GuidItem b) => b != a;
-        public static bool operator ==(GuidItem a, Guid b) => !(a is null) && a.Equals(b);
-        public static bool operator !=(GuidItem a, Guid b) => !(a == b);
-        public static bool operator ==(Guid a, GuidItem b) => b == a;
-        public static bool operator !=(Guid a, GuidItem b) => b != a;
+        public bool Equals(Guid other)
+        {
+            return this == other;
+        }
+
+        public static bool operator ==(GuidItem a, GuidItem b)
+        {
+            return a?.Equals(b) ?? (b is null);
+        }
+
+        public static bool operator !=(GuidItem a, GuidItem b)
+        {
+            return !(a == b);
+        }
+
+        public static bool operator ==(GuidItem a, KmsGuid b)
+        {
+            return a is not null && a.Equals(b);
+        }
+
+        public static bool operator !=(GuidItem a, KmsGuid b)
+        {
+            return !(a == b);
+        }
+
+        public static bool operator ==(KmsGuid a, GuidItem b)
+        {
+            return b == a;
+        }
+
+        public static bool operator !=(KmsGuid a, GuidItem b)
+        {
+            return b != a;
+        }
+
+        public static bool operator ==(GuidItem a, Guid b)
+        {
+            return a is not null && a.Equals(b);
+        }
+
+        public static bool operator !=(GuidItem a, Guid b)
+        {
+            return !(a == b);
+        }
+
+        public static bool operator ==(Guid a, GuidItem b)
+        {
+            return b == a;
+        }
+
+        public static bool operator !=(Guid a, GuidItem b)
+        {
+            return b != a;
+        }
     }
 
     public interface IKmsProductCollection<T> : IList<T> where T : GuidItem
@@ -440,7 +487,7 @@ namespace HGM.Hotbird64.Vlmcs
     {
         public Activate this[KmsGuid guid]
         {
-            get { return this.FirstOrDefault(p => p.Guid == guid); }
+            get => this.FirstOrDefault(p => p.Guid == guid);
 
             set
             {
@@ -477,7 +524,7 @@ namespace HGM.Hotbird64.Vlmcs
 
         public T this[KmsGuid guid]
         {
-            get { return this.FirstOrDefault(p => p.Guid == guid); }
+            get => this.FirstOrDefault(p => p.Guid == guid);
 
             set
             {
@@ -512,7 +559,7 @@ namespace HGM.Hotbird64.Vlmcs
         public static IKmsProductCollection<KmsItem> KmsItemList => new KmsProductCollection<KmsItem>(AppItemList.SelectMany(a => a.KmsItems));
         public static IKmsProductCollection<AppItem> AppItemList => KmsData.Items;
         public static IKmsProductCollection<CsvlkItem> CsvlkItemList => KmsData.CsvlkItems;
-        private static KmsData kmsData;
+
         private static int buildIndex = -1;
 
         public static KmsData KmsData
@@ -525,9 +572,9 @@ namespace HGM.Hotbird64.Vlmcs
 
                     try
                     {
-                        if (kmsData != null)
+                        if (field != null)
                         {
-                            return kmsData;
+                            return field;
                         }
                     }
                     finally
@@ -546,15 +593,10 @@ namespace HGM.Hotbird64.Vlmcs
                 }
 
                 LoadDatabase();
-                if (kmsData?.Items == null)
-                {
-                    throw new InvalidOperationException("The on-demand loader did not load a KMS Database.");
-                }
-
-                return kmsData;
+                return field?.Items == null ? throw new InvalidOperationException("The on-demand loader did not load a KMS Database.") : field;
             }
 
-            set => kmsData = value;
+            set;
         }
 
         public static void ReadDatabase(Stream stream, bool validate = true)
@@ -568,15 +610,15 @@ namespace HGM.Hotbird64.Vlmcs
 
                 using (Stream xsdStream = GetXsdValidationStream())
                 {
-                    StringBuilder errors = new StringBuilder();
+                    StringBuilder errors = new();
                     XmlSchema schema = XmlSchema.Read(xsdStream, (s, e) => throw e.Exception);
-                    XmlReaderSettings settings = new XmlReaderSettings
+                    XmlReaderSettings settings = new()
                     {
                         ValidationType = ValidationType.Schema,
                     };
 
-                    settings.ValidationEventHandler += (s, e) => { errors.AppendLine($"Line {e.Exception.LineNumber}, position {e.Exception.LinePosition}: {e.Exception.Message}"); };
-                    settings.Schemas.Add(schema);
+                    settings.ValidationEventHandler += (s, e) => { _ = errors.AppendLine($"Line {e.Exception.LineNumber}, position {e.Exception.LinePosition}: {e.Exception.Message}"); };
+                    _ = settings.Schemas.Add(schema);
                     XmlReader xmlFile = XmlReader.Create(stream, settings);
                     while (xmlFile.Read()) { }
                     if (errors.Length != 0)
@@ -585,10 +627,10 @@ namespace HGM.Hotbird64.Vlmcs
                     }
                 }
 
-                stream.Seek(0, SeekOrigin.Begin);
+                _ = stream.Seek(0, SeekOrigin.Begin);
             }
 
-            XmlSerializer serializer = new XmlSerializer(typeof(KmsData));
+            XmlSerializer serializer = new(typeof(KmsData));
 
             KmsData.Lock.AcquireWriterLock(2000);
 
@@ -727,7 +769,7 @@ namespace HGM.Hotbird64.Vlmcs
 
         public static int GetPlatformId(int buildNumber)
         {
-            IReadOnlyList<WinBuild> winBuilds = KmsData.WinBuilds.OrderByDescending(b => b.BuildNumber).ToArray() as IReadOnlyList<WinBuild>;
+            IReadOnlyList<WinBuild> winBuilds = KmsData.WinBuilds.OrderByDescending(b => b.BuildNumber).ToArray();
 
             foreach (WinBuild winBuild in winBuilds)
             {

@@ -48,17 +48,11 @@ namespace HGM.Hotbird64.LicenseManager.WPF.Converters
         {
             WmiProperty = value as IWmiProperty;
 
-            if (IsUnsupported)
-            {
-                return UnsupportedText;
-            }
-
-            if (WmiManagementObject?[PropertyName] == null)
-            {
-                return null;
-            }
-
-            return System.Convert.ChangeType(WmiManagementObject[PropertyName], targetType, culture);
+            return IsUnsupported
+                ? UnsupportedText
+                : WmiManagementObject?[PropertyName] == null
+                ? null
+                : System.Convert.ChangeType(WmiManagementObject[PropertyName], targetType, culture);
         }
     }
 
@@ -92,7 +86,7 @@ namespace HGM.Hotbird64.LicenseManager.WPF.Converters
 
                 try
                 {
-                    EPid ePid = new EPid(WmiManagementObject[PropertyName]);
+                    EPid ePid = new(WmiManagementObject[PropertyName]);
                     EPidPropertyValue = typeof(EPid).GetProperty(EPidPropertyName)?.GetValue(ePid);
                 }
                 catch
@@ -155,15 +149,15 @@ namespace HGM.Hotbird64.LicenseManager.WPF.Converters
                 return stringValue;
             }
 
-            uint data1 = (uint)(guidBytes[3] << 24 |
-                               guidBytes[2] << 16 |
-                               guidBytes[1] << 8 |
+            uint data1 = (uint)((guidBytes[3] << 24) |
+                               (guidBytes[2] << 16) |
+                               (guidBytes[1] << 8) |
                                guidBytes[0]);
 
-            ushort data2 = (ushort)(guidBytes[5] << 8 |
+            ushort data2 = (ushort)((guidBytes[5] << 8) |
                                  guidBytes[4]);
 
-            ushort data3 = (ushort)(guidBytes[7] << 8 |
+            ushort data3 = (ushort)((guidBytes[7] << 8) |
                                  guidBytes[6]);
 
             string byteList = "";

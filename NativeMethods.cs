@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
@@ -11,22 +10,17 @@ namespace HGM.Hotbird64.LicenseManager
 {
     public static partial class NativeMethods
     {
-
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        [SuppressMessage("ReSharper", "NotAccessedField.Local")]
         public class AuthPrompt : IDisposable
         {
-            [SuppressMessage("ReSharper", "InconsistentNaming")]
             private struct CREDUI_INFO
             {
                 public int cbSize;
-                private IntPtr hwndParent;
+                private readonly IntPtr hwndParent;
                 [MarshalAs(UnmanagedType.LPWStr)]
                 public string MessageText;
                 [MarshalAs(UnmanagedType.LPWStr)]
                 public string CaptionText;
-                private IntPtr hbmBanner;
+                private readonly IntPtr hbmBanner;
             }
 
             [DllImport("credui", CharSet = CharSet.Unicode)]
@@ -46,8 +40,7 @@ namespace HGM.Hotbird64.LicenseManager
             private static extern CredUiReturnCodes CredUIConfirmCredentials(string targetName, [In, MarshalAs(UnmanagedType.Bool)] bool bConfirm);
 
             [Flags]
-            [SuppressMessage("ReSharper", "InconsistentNaming")]
-            enum CREDUI_FLAGS
+            private enum CREDUI_FLAGS
             {
                 INCORRECT_PASSWORD = 0x1,
                 DO_NOT_PERSIST = 0x2,
@@ -80,13 +73,11 @@ namespace HGM.Hotbird64.LicenseManager
                 ERROR_INVALID_FLAGS = 1004,
             }
 
-
-            [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands")]
             public CredUiReturnCodes PromptForPassword(bool showUI, string messageText, string captionText)
             {
-                StringBuilder userPassword = new StringBuilder(256), userID = new StringBuilder(256);
+                StringBuilder userPassword = new(256), userID = new(256);
 
-                CREDUI_INFO credUI = new CREDUI_INFO();
+                CREDUI_INFO credUI = new();
                 credUI.cbSize = Marshal.SizeOf(credUI);
                 credUI.CaptionText = captionText;
                 credUI.MessageText = messageText;
